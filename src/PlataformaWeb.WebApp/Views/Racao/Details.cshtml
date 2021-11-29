@@ -1,0 +1,95 @@
+﻿@model RacaoViewModel;
+@inject PlataformaWeb.Business.Interfaces.IUser AppUser
+@using PlataformaWeb.WebApp.Extensions
+
+@{ ViewData["Title"] = "Detalhe Ração: " + @Model.Nome; }
+
+<div class="row align-items-center justify-content-center">
+    <div class="col-xl-10 col-lg-12">
+        <fieldset class="form h-100" disabled>
+            <legend class="FundoDestaque">Dados da Ração</legend>
+            <div class="form-row">
+                <div class="form-group col-lg-9">
+                    <label asp-for="Nome" class="control-label"></label>
+                    <input asp-for="Nome" class="form-control" required />
+                </div>
+                <div class="form-group col-lg-3">
+                    <label asp-for="DataFormulacao" class="control-label"></label>
+                    <input asp-for="DataFormulacao" type="text" class="form-control data"  asp-format="{0:dd/MM/yyyy}" required />
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group col-md-3">
+                    <label asp-for="Tipo" class=" control-label"></label>
+                    <select asp-for="Tipo" class="form-control numerico" asp-items="this.ObterSelectTipoRacao()" required></select>
+                </div>
+                <div class="form-group col-md-3">
+                    <label asp-for="Gmd" class=" control-label"></label>
+                    <input asp-for="Gmd" class="form-control decimal3" asp-format="{0:N3}" required />
+                </div>
+                <div class="form-group col-md-3">
+                    <label asp-for="ValorKg" class=" control-label"></label>
+                    <input asp-for="ValorKg" class="form-control decimal3 no_focus" asp-format="{0:N3}" readonly />
+                </div>
+                <div class="form-group col-md-3">
+                    <label asp-for="MateriaSeca" class=" control-label"></label>
+                    <input asp-for="MateriaSeca" class="form-control decimal3 no_focus" asp-format="{0:N3}" readonly />
+                </div>
+            </div>
+        </fieldset>
+    </div>
+    <div class="col-lg-12 mt-3">
+        <fieldset class="form h-100">
+            <legend class="FundoDestaque">Insumos</legend>
+            <div class="table-responsive">
+                <table id="tabelaInsumos" class="table table-sm table-striped">
+                    <thead>
+                        <tr>
+                            <th>Insumo</th>
+                            <th class="text-right">% Matéria Sec</th>
+                            <th class="text-right">KG Matéria Sec</th>
+                            <th class="text-right">KG Matéria Natural</th>
+                            <th class="text-right">Inclusão Mat. Seca</th>
+                            <th class="text-right">Inclusão Mat. Natural</th>
+                            <th class="text-right">Valor KG</th>
+                            <th class="text-right">Valor Inclusão</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var insumo in Model.InsumosRacao)
+                        {
+                            <tr>
+                                <td>@insumo.InsumoAlimento?.Nome</td>
+                                <td class="text-right">@this.FormataDecimal(insumo.PercentualMateriaSeca, 3)</td>
+                                <td class="text-right">@this.FormataDecimal(insumo.KgMateriaSeca, 3)</td>
+                                <td class="text-right">@this.FormataDecimal(insumo.KgMateriaNatural, 3)</td>
+                                <td class="text-right">@this.FormataDecimal(insumo.InclusaoMateriaSeca, 3)</td>
+                                <td class="text-right">@this.FormataDecimal(insumo.InclusaoMateriaNatural, 3)</td>
+                                <td class="text-right">@this.FormataDecimal(insumo.ValorKg, 3)</td>
+                                <td class="text-right">@this.FormataDecimal(insumo.ValorInclusao, 3)</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th colspan="2" class="text-right">TOTAL:</th>
+                            <th class="text-right">@this.FormataDecimal(Model.InsumosRacao.Sum(x => x.KgMateriaSeca), 3)</th>
+                            <th class="text-right">@this.FormataDecimal(Model.InsumosRacao.Sum(x => x.KgMateriaNatural), 3)</th>
+                            <th class="text-right">100</th>
+                            <th class="text-right">100</th>
+                            <th class="text-right"></th>
+                            <th class="text-right">@this.FormataDecimal(Model.InsumosRacao.Sum(x => x.ValorInclusao), 3)</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </fieldset>
+    </div>
+</div>
+<div class="text-center mt-3">
+    @if (!AppUser.EhAdmin())
+    {
+<a autofocus asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning"><i class="fa fa-edit"></i>&nbsp;Editar</a>}
+    <a asp-action="Index" class="btn btn-info"><i class="fa fa-times"></i>&nbsp;Voltar</a>
+</div>
+

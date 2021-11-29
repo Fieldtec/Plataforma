@@ -1,0 +1,262 @@
+﻿@using PlataformaWeb.WebApp.Extensions
+
+@{ ViewData["Title"] = "Fornecimento Pastos"; }
+
+<form id="formGeracao" novalidate>
+    <div class="row align-items-center justify-content-center">
+        <div class="col-xl-7 col-lg-10">
+            <vc:summary></vc:summary>
+        </div>
+        <div class="col-xl-7 col-lg-10">
+            <fieldset class="form">
+                <legend class="FundoDestaque">Dados do Fornecimento</legend>
+                <div class="form-row">
+                    <div class="form-group col-lg-3">
+                        <label for="DataFornecimento" class="control-label">Data Fornecimento</label>
+                        <input id="DataFornecimento" class="form-control LetraFormulario data" required name="dataRealizado" />
+                    </div>
+                    <div class="form-group col-lg-9">
+                        <label for="IdPasto" class="control-label">Pasto</label>
+                        <select id="IdPasto" name="idPasto" class="form-control LetraFormulario inteiro" required></select>
+                    </div>
+                </div>
+                <div id="divDadosSuplemento" class="form-row">
+                    <div class="form-group col-lg-6">
+                        <label for="Suplemento" class="control-label">Suplemento</label>
+                        <input id="Suplemento" disabled class="form-control LetraFormulario" name="suplemento" />
+                    </div>
+                    <div class="form-group col-lg-3">
+                        <label for="KgEmbalagem" class="control-label">KG Embalagem</label>
+                        <input id="KgEmbalagem" disabled class="form-control LetraFormulario decimal" name="pesoEmbalagem" />
+                    </div>
+                    <div class="form-group col-lg-3">
+                        <label for="PesoVivo" class="control-label">% Peso Vivo</label>
+                        <input id="PesoVivo" disabled class="form-control LetraFormulario decimal" name="pesoVivo" />
+                    </div>
+                </div>
+                <div id="divDadosLote" class="form-row">
+                    <div class="form-group col-lg-4">
+                        <label for="QuantidadeAnimais" class="control-label">Qtd. Animais</label>
+                        <input id="QuantidadeAnimais" disabled class="form-control LetraFormulario decimal" name="quantidadeAnimais" />
+                    </div>
+                    <div class="form-group col-lg-4">
+                        <label for="PesoProjetado" class="control-label">Peso Projetado</label>
+                        <input id="PesoProjetado" disabled class="form-control LetraFormulario decimal" name="pesoProjetado" />
+                    </div>
+                    <div class="form-group col-lg-4">
+                        <label for="UltimoFornecimento" class="control-label">Último Fornecimento</label>
+                        <input id="UltimoFornecimento" disabled class="form-control LetraFormulario data" name="ultimoFornecimento" />
+                    </div>
+                </div>
+            </fieldset>
+            <fieldset class="form mt-2">
+                <legend class="FundoDestaque">Previsão Fornecimento</legend>
+                <div id="divDadosPrevisao" class="form-row">
+                    <div class="form-group col-lg-4">
+                        <label for="PrevisaoSaco" class="control-label">Previsão Saco</label>
+                        <input id="PrevisaoSaco" disabled class="form-control LetraFormulario decimal" required name="previsaoSaco" />
+                    </div>
+                    <div class="form-group col-lg-4">
+                        <label for="PrevisaoKg" class="control-label">Previsão Kg</label>
+                        <input id="PrevisaoKg" disabled class="form-control LetraFormulario decimal" required name="previsaoKg" />
+                    </div>
+                </div>
+            </fieldset>
+            <fieldset class="form mt-2">
+                <legend class="FundoDestaque">Fornecimento Realizado</legend>
+                <div class="form-row">
+                    <div class="form-group col-lg-4">
+                        <label for="Origem" class="control-label">Estoque Origem</label>
+                        <select id="Origem" required class="form-control LetraFormulario numerico" asp-items="this.ObterSelectOrigemFornecimento()" name="origem"></select>
+                    </div>
+                    <div class="form-group col-lg-4">
+                        <label for="Destino" class="control-label">Tipo Abastecimento</label>
+                        <select id="Destino" required class="form-control LetraFormulario numerico" asp-items="this.ObterSelectDestinoFornecimento()" name="destino"></select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-lg-4">
+                        <label for="TipoLancamento" class="control-label">Tipo Lançamento</label>
+                        <select id="TipoLancamento" required class="form-control LetraFormulario numerico" name="tipoLancamento">
+                            <option value="" selected>SELECIONE</option>
+                            <option value="1">SACO</option>
+                            <option value="2">KG</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-lg-4">
+                        <label for="RealizadoSaco" class="control-label">Realizado Saco</label>
+                        <input id="RealizadoSaco" disabled class="form-control LetraFormulario decimal" required name="realizadoSaco" />
+                    </div>
+                    <div class="form-group col-lg-4">
+                        <label for="RealizadoKg" class="control-label">Realizado Kg</label>
+                        <input id="RealizadoKg" disabled class="form-control LetraFormulario decimal" required name="realizadoKg" />
+                    </div>
+                </div>
+            </fieldset>
+        </div>
+    </div>
+    <div class="text-center mt-3">
+        <button id="btn_salvar" type="button" class="btn btn-success"><i class="fa fa-save"></i>&nbsp;Salvar</button>
+        <a asp-action="Index" class="btn btn-info"><i class="fa fa-times"></i>&nbsp;Voltar</a>
+    </div>
+</form>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script src="~/lib/selectize.js/js/standalone/selectize.min.js"></script>
+    <link href="~/lib/selectize.js/css/selectize.bootstrap3.min.css" rel="stylesheet" />
+    <script type="text/javascript">
+
+        var $IdPasto,
+            currentPasto,
+            currentDadosFornecimento;
+
+    $(document).ready(function () {
+
+        var pastos = @Html.Raw(Json.Serialize(ViewBag.pastos));
+
+
+        $IdPasto = criarSelectizeObjeto('#IdPasto', 'buscar-curral-pasto', {
+            options: pastos,
+            onChange: function (value) {
+                currentPasto = this.options[value] || null;
+                if (currentPasto)
+                    buscarFornecimento();
+            },
+            render: {
+                option: function (item, escape) {
+                    return `<div class="selectize-div">
+                                <span class="selectize-titulo">${item.nome}</span>
+                            </div>`;
+                }
+            }
+        }, pastos);
+
+        $(document).on('click', '#btn_salvar', function () {
+            var valid = $('#formGeracao').ValidForm();
+            if (valid) {
+                salvarFornecimento();
+            }
+        });
+
+        $(document).on('change', '#TipoLancamento', function () {
+            var tipo = $(this).val();
+            if (tipo === '1') { //saco
+                $('#RealizadoSaco').prop('disabled', false);
+                $('#RealizadoKg').prop('disabled', true).val('');
+            } else if (tipo === '2') { //kg
+                $('#RealizadoSaco').prop('disabled', true).val('');
+                $('#RealizadoKg').prop('disabled', false);
+            } else {
+                $('#RealizadoSaco, #RealizadoKg').prop('disabled', true).val('');
+            }
+        });
+
+        $(document).on('change', '#DataFornecimento', function () {
+            buscarFornecimento();
+        });
+
+        setTimeout(function () {
+            $('#DataFornecimento').focus();
+        }, 100);
+
+
+        function buscarFornecimento() {
+            if ($('#DataFornecimento').getValue() && currentPasto) {
+
+                var jsonBusca = {
+                    dataInicio: $('#DataFornecimento').getValue(),
+                    dataFinal: $('#DataFornecimento').getValue(),
+                    idPasto: currentPasto.id
+                }
+
+                currentDadosFornecimento = null;
+
+                $.postUrlAjax(jsonBusca, 'prepara-dados-fornecimento-pasto', true, function (res) {
+                    setarDadosFornecimento(res);                  
+                    currentDadosFornecimento = res;
+                    $('#Origem').focus();
+                });
+            }
+        }
+
+        function setarDadosFornecimento(res) {
+            $('#divDadosSuplemento').SetJsonData(res);
+            $('#divDadosLote').SetJsonData(res);
+            $('#divDadosPrevisao').SetJsonData(res);
+        }
+
+        function salvarFornecimento() {
+            var jsonData = obterDadosFornecimento();
+
+            if (!jsonData) return;
+
+            console.log(jsonData);
+
+            var fnGerar = function () {
+                $.postUrlAjax(jsonData, 'novo-fornecimento-pasto', true, function (res) {
+                    MostraAlerta("Informações gravadas com sucesso.", "Sucesso", TipoAlerta.Sucesso, $(this), false, false, function () {
+                        window.location.href = raizAplicacao + 'fornecimentos-pasto';
+                    });
+                });
+            }
+
+            fnGerar();
+
+        }
+
+        function obterDadosFornecimento() {
+            var jsonData = $('#formGeracao').GetJsonData();
+
+            if (jsonData.tipoLancamento === 1) { //saco
+                if (jsonData.realizadoSaco === 0) {
+                    MostraAlerta("O valor do Realizado Saco não pode ser 0", "Atenção", TipoAlerta.Warning, $('#RealizadoSaco'), false, true);
+                    return false;
+                } else {
+                    jsonData.realizadoKg = jsonData.realizadoSaco * currentDadosFornecimento.pesoEmbalagem;
+                }
+            } else { //kg
+                if (jsonData.realizadoKg === 0) {
+                    MostraAlerta("O valor do Realizado KG não pode ser 0", "Atenção", TipoAlerta.Warning, $('#RealizadoKg'), false, true);
+                    return false;
+                } else {
+                    jsonData.realizadoSaco = jsonData.realizadoKg / currentDadosFornecimento.pesoEmbalagem;
+                }
+            }
+
+            return {
+                dataRealizado: jsonData.dataRealizado,
+                idPasto: jsonData.idPasto,
+                idLote: currentDadosFornecimento.idLote,
+                quantidadeAnimais: currentDadosFornecimento.quantidadeAnimais,
+                idSuplemento: currentDadosFornecimento.idSuplemento,
+                previsaoKg: currentDadosFornecimento.previsaoKg,
+                previsaoSaco: currentDadosFornecimento.previsaoSaco,
+                realizadoKg: jsonData.realizadoKg,
+                realizadoSaco: jsonData.realizadoSaco,
+                origem: jsonData.origem,
+                destino: jsonData.destino,
+            }
+        }
+
+        function criarSelectizeObjeto(id, urlBusca, options, list) {
+            return $(id).selectize($.extend(true, {
+                valueField: 'id',
+                labelField: 'nome',
+                searchField: 'nome',
+                create: false,
+                load: function (query, callback) {
+                    if (query.length < 1) {
+                        callback(list);
+                    } else {
+                        var listFilter = list.filter(x => x.nome.toUpperCase().includes(query.toUpperCase()));
+                        callback(listFilter);
+                    }
+                }
+            }, options));
+        }
+
+    });
+
+    </script>
+}

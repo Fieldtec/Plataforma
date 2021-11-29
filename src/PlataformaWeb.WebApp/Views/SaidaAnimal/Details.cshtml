@@ -1,0 +1,77 @@
+﻿@model SaidaAnimalCadastroViewModel;
+@inject PlataformaWeb.Business.Interfaces.IUser AppUser
+@using PlataformaWeb.Business.Extensions
+@using PlataformaWeb.WebApp.Extensions
+
+@{ ViewData["Title"] = "Detalhe Saída Lote N°: " + @Model.NumeroLote; }
+
+<div class="row align-items-center justify-content-center">
+    <div class="col-lg-10">
+        <fieldset class="form h-100" disabled>
+            <legend class="FundoDestaque">Dados do Lote</legend>
+            <div class="form-row">
+                <div class="form-group col-md-3">
+                    <label for="LoteSaida" class=" control-label">Lote Saída N°</label>
+                    <input class="form-control" value="@Model.NumeroLote.ToString()" />                   
+                </div>
+                <div class="form-group col-md-3">
+                    <label for="DataEmbarque" class="control-label">Dt. Embarque</label>
+                    <input id="DataEmbarque" name="dataEmbarque" value="@Model.DataEmbarque.ToShortDateString()" class="form-control" />
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="Destino" class="control-label">Destino</label>
+                    <input id="Destino" value="@Model.Destino" name="destino" class="form-control" />
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group col-md-3">
+                    <label for="Tipo" class="control-label">Tipo</label>
+                    <input class="form-control" value="@Model.TipoSaida.ObterDescricao()" />
+                </div>
+                <div class="form-group col-md-3">
+                    <label for="QuantidadeAnimalPrevista" class="control-label">Qtd. Animal Prevista</label>
+                    <input id="QuantidadeAnimalPrevista" name="quantidadeAnimalPrevista" class="form-control" value="@Model.QuantidadeAnimalPrevisto" />
+                </div>
+                <div class="form-group col-md-3">
+                    <label for="QuantidadeAnimalEmbarcado" class="control-label">Qtd. Animal Embarcado</label>
+                    <input id="QuantidadeAnimalEmbarcado" class="form-control numerico" value="@Model.QuantidadeAnimalEmbarcado" />
+                </div>
+            </div>
+        </fieldset>
+    </div>
+
+    <div id="div_dados_locais" class="col-lg-7 mt-3">
+        <fieldset class="form h-100">
+            <legend class="FundoDestaque">Locais</legend>
+            <div class="table-responsive">
+                <table id="tabelaLocais" class="table table-sm table-striped">
+                    <thead>
+                        <tr>
+                            <th>Local de Origem</th>
+                            <th class="text-right">Totais Animais Embarcados</th>
+                            <th class="text-right">Peso Saída</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var lote in Model.Lotes)
+                        {
+                            <tr>
+                                <td>@lote.Local.Nome</td>
+                                <td class="text-right">@lote.QuantidadeEmbarcado</td>
+                                <td class="text-right">@this.FormataDecimal(lote.PesoMedio, 2)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </fieldset>
+    </div>
+</div>
+
+<div class="text-center mt-3">
+    @if (!AppUser.EhAdmin())
+    {
+<a autofocus asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning"><i class="fa fa-edit"></i>&nbsp;Editar</a>}
+    <a asp-action="Index" class="btn btn-info"><i class="fa fa-times"></i>&nbsp;Voltar</a>
+</div>
+

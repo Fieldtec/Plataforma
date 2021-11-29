@@ -1,0 +1,415 @@
+﻿@model PlanejamentoNutricionalViewModel;
+@using PlataformaWeb.WebApp.Extensions
+
+@{ ViewData["Title"] = "Cadastrar Novo Planejamento"; }
+
+<form id="form" enctype="multipart/form-data" novalidate>
+    <div class="row align-items-center justify-content-center">
+        <div class="col-xl-7 col-lg-10">
+            <vc:summary></vc:summary>
+        </div>
+        <div class="col-xl-7 col-lg-10">
+            <fieldset class="form h-100">
+                <legend class="FundoDestaque">Dados do Planejamento</legend>
+                <div class="form-row">
+                    <div class="form-group col-lg-6">
+                        <label asp-for="Nome" class="control-label"></label>
+                        <input autofocus asp-for="Nome" class="form-control" required />
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label asp-for="Tipo" class=" control-label"></label>
+                        <select asp-for="Tipo" class="form-control numerico" asp-items="this.ObterSelectTipoPlanejamento()" required></select>
+                    </div>
+                </div>
+            </fieldset>
+        </div>
+        <div id="div_dados_confinamento" class="col-lg-8 mt-3" style="display: none">
+            <fieldset class="form h-100">
+                <legend class="FundoDestaque">Dados Confinamento</legend>
+                <button type="button" id="btn_novo_confinamento" class="btn btn-sm btn-primary text-right mb-3"><i class="fa fa-plus"></i>&nbsp;Novo Valor</button>
+                <div class="table-responsive">
+                    <table id="tabelaConfinamentos" class="table table-sm table-striped">
+                        <thead>
+                            <tr>
+                                <th>Ração</th>
+                                <th class="text-right">Dia Início</th>
+                                <th class="text-right">Dia Final</th>
+                                <th class="text-right">IMSPV Esperado</th>
+                                <th class="text-right">GMD Esperado</th>
+                                <th class="text-center">Ações</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </fieldset>
+        </div>
+
+        <div id="div_dados_pasto" class="col-lg-12 mt-3" style="display: none">
+            <fieldset class="form h-100">
+                <legend class="FundoDestaque">Dados Pasto</legend>
+                <button type="button" id="btn_novo_pasto" class="btn btn-sm btn-primary text-right mb-3"><i class="fa fa-plus"></i>&nbsp;Novo Valor</button>
+                <div class="table-responsive">
+                    <table id="tabelaPastos" class="table table-sm table-striped">
+                        <thead>
+                            <tr>
+                                <th>Categoria</th>
+                                <th>Suplemento</th>
+                                <th>Fase</th>
+                                <th class="text-right">IMSPV Esperado</th>
+                                <th class="text-right">GMD Esperado</th>
+                                <th class="text-center">Ações</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </fieldset>
+        </div>
+
+    </div>
+    <div class="text-center mt-3">
+        <button id="btn_salvar_planejamento" type="button" class="btn btn-success"><i class="fa fa-save"></i>&nbsp;Salvar</button>
+        <a asp-action="Index" class="btn btn-info"><i class="fa fa-times"></i>&nbsp;Voltar</a>
+    </div>
+</form>
+
+
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+
+        var confinamentoAtualizacao = null,
+            pastoAtualizacao = null,
+            indexAtualizacaoPasto = -1,
+            indexAtualizacaoConfinamento = -1;
+
+        $(document).ready(function () {
+
+
+            $(document).on('click', '#btn_salvar_planejamento', function () {
+                salvarPlanejamento();
+            });
+
+            $(document).on('change', '#Tipo', function () {
+                var tipoPlanejamento = $(this).getValue();
+                if (tipoPlanejamento === 1) { //Confinamento
+                    $('#div_dados_pasto').hide();
+                    $('#tabelaPastos').grid("setData", []);
+                    $('#div_dados_confinamento').show();
+                } else if (tipoPlanejamento === 2) { //Pasto
+                    $('#div_dados_confinamento').hide();
+                    $('#tabelaConfinamentos').grid("setData", []);
+                    $('#div_dados_pasto').show();
+                } else {
+                    $('#div_dados_confinamento').hide();
+                    $('#div_dados_pasto').hide();
+                }
+            });
+
+            /* #### Eventos referente aos itens de confinamento #### */
+
+            $(document).on('click', '#btn_novo_confinamento', function () {
+                confinamentoAtualizacao = null;
+                indexAtualizacaoConfinamento = -1;
+                var isValidForm = $('#form').ValidForm();
+                if (isValidForm) {
+                    initModalConfinamento(confinamentoCadastradoCallback);
+                }
+            });
+
+            $('#tabelaConfinamentos').grid({
+                "bSort": false,
+                columns: [
+                    {
+                        title: "Ração",
+                        data: function (row, type, val, meta) {
+                            if (type === "display") {
+                                return row.racao.nome;
+                            }
+                            return row;
+                        }
+                    },
+                    { title: "Dia Início", className: "text-right", data: "diaInicio" },
+                    { title: "Dia Fim", className: "text-right", data: "diaFim" },
+                    {
+                        title: "IMSPV Esperado", className: "text-right",
+                        data: function (row, type) {
+                            if (type === "display") {
+                                return formataMoeda(row.imspvEsperado, 3, ",", ".");
+                            }
+                            return row;
+                        }
+                    },
+                    {
+                        title: "GMD Esperado", className: "text-right",
+                        data: function (row, type) {
+                            if (type === "display") {
+                                return formataMoeda(row.gmdEsperado, 3, ",", ".");
+                            }
+                            return row;
+                        }
+                    },
+                    {
+                        title: "Ações", className: "text-center", data: function (row, type, val, meta) {
+                            if (type === "display") {
+                                var id = row.id || 0;
+                                return `<a style="color: white !important" title="Editar" class="btn btn-sm btn-warning td_editar_confinamento" data-id="${id}"><span class="fas fa-edit"></span></a> <a style="color: white !important" title="Remover" class="btn btn-sm btn-danger td_deletar_confinamento" data-id="${id}"><span class="fas fa-trash-alt"></span></a>`
+                            }
+                            return row;
+                        }
+                    }
+                ]
+            });
+
+            $(document).on("click", '.td_deletar_confinamento', function (e) {
+
+                e.preventDefault();
+
+                var index = $(e.currentTarget).parents("tr").index(),
+                    list = $('#tabelaConfinamentos').grid('getData');
+
+                list.splice(index, 1);
+                $('#tabelaConfinamentos').grid('setData', list);
+
+            });
+
+            $(document).on("click", '.td_editar_confinamento', function (e) {
+
+                e.preventDefault();
+
+                indexAtualizacaoConfinamento = $(e.currentTarget).parents("tr").index();
+
+                confinamentoAtualizacao = $('#tabelaConfinamentos').grid('getByIndex', indexAtualizacaoConfinamento);
+
+                initModalConfinamento(confinamentoCadastradoCallback, confinamentoAtualizacao);
+
+            });
+
+            /* #### Fim eventos Confinamento #### */
+
+
+            /* #### Eventos referente aos itens do Pasto #### */
+
+            $(document).on('click', '#btn_novo_pasto', function () {
+                pastoAtualizacao = null;
+                indexAtualizacaoPasto = -1;
+                var isValidForm = $('#form').ValidForm();
+                if (isValidForm) {
+                    initModalPasto(pastoCadastradoCallback);
+                }
+            });
+
+            $('#tabelaPastos').grid({
+                "bSort": false, 
+                columns: [
+                    {
+                        title: "Categoria",
+                        data: function (row, type, val, meta) {
+                            if (type === "display") {
+                                return row.categoria.nome;
+                            }
+                            return row;
+                        }
+                    },
+                    {
+                        title: "Suplemento",
+                        data: function (row, type, val, meta) {
+                            if (type === "display") {
+                                return row.suplementoMineral.nome;
+                            }
+                            return row;
+                        }
+                    },
+                    {
+                        title: "Fase",
+                        data: function (row, type, val, meta) {
+                            if (type === "display") {
+                                return row.faseDoAno.nome;
+                            }
+                            return row;
+                        }
+                    },
+                    {
+                        title: "IMSPV Esperado", className: "text-right",
+                        data: function (row, type) {
+                            if (type === "display") {
+                                return formataMoeda(row.imspvEsperado, 3, ",", ".");
+                            }
+                            return row;
+                        }
+                    },
+                    {
+                        title: "GMD Esperado", className: "text-right",
+                        data: function (row, type) {
+                            if (type === "display") {
+                                return formataMoeda(row.gmdEsperado, 3, ",", ".");
+                            }
+                            return row;
+                        }
+                    },
+                    {
+                        title: "Ações", className: "text-center", data: function (row, type, val, meta) {
+                            if (type === "display") {
+                                var id = row.id || 0;
+                                return `<a style="color: white !important" title="Editar" class="btn btn-sm btn-warning td_editar_pasto" data-id="${id}"><span class="fas fa-edit"></span></a> <a style="color: white !important" title="Remover" class="btn btn-sm btn-danger td_deletar_pasto" data-id="${id}"><span class="fas fa-trash-alt"></span></a>`
+                            }
+                            return row;
+                        }
+                    }
+                ]
+            });
+
+            $(document).on("click", '.td_deletar_pasto', function (e) {
+
+                e.preventDefault();
+
+                var index = $(e.currentTarget).parents("tr").index(),
+                    list = $('#tabelaPastos').grid('getData');
+
+                list.splice(index, 1);
+                $('#tabelaPastos').grid('setData', list);
+
+            });
+
+            $(document).on("click", '.td_editar_pasto', function (e) {
+
+                e.preventDefault();
+
+                indexAtualizacaoPasto = $(e.currentTarget).parents("tr").index();
+
+                pastoAtualizacao = $('#tabelaPastos').grid('getByIndex', indexAtualizacaoPasto);
+
+                initModalPasto(pastoCadastradoCallback, pastoAtualizacao);
+
+            });
+
+            /* #### Fim de eventos referente aos itens do Pasto #### */
+
+        });
+
+        function obterObjetoPlanejamento() {
+
+            var isValidForm = $('#form').ValidForm();
+
+            if (!isValidForm) return false;
+
+            //obtém dados do formulário
+            var planejamento = $('#form').GetJsonData();
+
+            planejamento["planejamentoValoresConfinamento"] = $('#tabelaConfinamentos').grid('getData');
+            planejamento["planejamentoValoresPasto"] = $('#tabelaPastos').grid('getData');
+
+            return planejamento;
+        }
+
+        function salvarPlanejamento() {
+
+            var planejamentoModel = obterObjetoPlanejamento();
+
+            if (!planejamentoModel) return;
+
+            $.postUrlAjax(planejamentoModel, 'novo-planejamento', true, function (res) {
+                MostraAlerta("Planejamento Cadastrado com sucesso!", "Operação realizada", TipoAlerta.Sucesso, $(this), false, false, function () {
+                    $.load();
+                    window.location.href = raizAplicacao + "planejamentos";
+                });
+            });
+        }
+
+        /* Métodos referente aos itens do Pasto */
+
+        function pastoCadastradoCallback(data, callback) {
+
+            var list = $('#tabelaPastos').grid('getData');
+
+            if (indexAtualizacaoPasto !== -1) {
+                list[indexAtualizacaoPasto] = Object.assign({}, data);
+            } else {
+
+                if (existePastoNaLista(list, data)) {
+                    MostraAlerta(`Fase do Ano e Categoria não podem se repetir para o mesmo Planejamento`, "Atenção", TipoAlerta.Warning, $(this), false, false);
+                    return;
+                }
+
+                list.push(data);
+            }
+
+            $('#tabelaPastos').grid('setData', list);
+            if (callback)
+                callback();
+
+            indexAtualizacaoPasto = -1;
+            pastoAtualizacao = null;
+        }
+
+        function existePastoNaLista(list, data) {
+            var existe = false;
+            $.each(list, function (i, item) {
+                if (item.faseDoAno.id === data.faseDoAno.id && item.categoria.id === data.categoria.id) {
+                    existe = true;
+                    return;
+                }
+            });
+            return existe;
+        }
+
+        /* Fim Métodos referente aos itens do Pasto */
+
+
+        /* Métodos referente aos itens de confinamento */
+
+        function existeRacaoNaLista(list, data) {
+            var existe = false;
+            $.each(list, function (i, item) {
+
+                if (item.racao.id === data.racao.id) {
+                    existe = true;
+                    return;
+                }
+            });
+            return existe;
+        }
+
+        function confinamentoCadastradoCallback(data, callback) {
+
+            //obtém confinamentos cadastrados
+            var list = $('#tabelaConfinamentos').grid('getData');
+
+            if (indexAtualizacaoConfinamento !== -1) {
+                list[indexAtualizacaoConfinamento] = Object.assign({}, data);
+            } else {
+
+                if (existeRacaoNaLista(list, data)) {
+                    //verifica se a última ração cadastrada é a mesma que está preste a cadastrar
+                    if (list[list.length - 1].racao.id === data.racao.id) {
+                        MostraAlerta(`A Ração ${data.racao.nome} não pode ser cadastrada em sequência. Escolha outra ração.`, "Atenção", TipoAlerta.Warning, $(this), false, false);
+                        return;
+                    }
+                }
+
+                //adiciona o último confinamento na lista
+                list.push(data);
+            }
+
+            $('#tabelaConfinamentos').grid('setData', list);
+            if (callback)
+                callback();
+
+
+            indexAtualizacaoConfinamento = -1;
+            confinamentoAtualizacao = null;
+
+        }
+
+        /* Fim Métodos referente aos itens de confinamento */
+
+
+
+    </script>
+
+    @{
+        await Html.RenderPartialAsync("_CadastroPlanejamentoValorConfinamentoModal");
+        await Html.RenderPartialAsync("_CadastroPlanejamentoValorPastoModal");
+    }   
+    
+}

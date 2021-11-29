@@ -1,0 +1,65 @@
+﻿@model SuplementoMineralViewModel;
+
+@{ ViewData["Title"] = "Confirma a exclusão?"; }
+
+<form id="form" asp-action="Delete" enctype="multipart/form-data" novalidate>
+    <div class="row align-items-center justify-content-center">
+        <div class="col-xl-8 col-lg-11">
+            <vc:summary></vc:summary>
+        </div>
+        <div class="col-xl-8 col-lg-11">
+            <fieldset class="form h-100">
+                <legend class="FundoDestaque">Dados do Suplemento</legend>
+                <div class="form-row">
+                    <div class="form-group col-lg-6">
+                        <label asp-for="Nome" class="control-label"></label>
+                        <input asp-for="Nome" class="form-control" readonly />
+                    </div>
+                    <div class="form-group col-lg-6">
+                        <label asp-for="IdFornecedor" class="control-label"></label>
+                        <input asp-for="IdFornecedor" type="hidden" />
+                        <input value="@Model.FornecedorInsumo?.Nome" class="form-control LetraFormulario" readonly />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label asp-for="GanhoEsperado" class=" control-label"></label>
+                        <input asp-for="GanhoEsperado" class="form-control money" readonly />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="ConsumoEsperado" class=" control-label"></label>
+                        <input asp-for="ConsumoEsperado" class="form-control money" readonly />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="EstoqueMinimoKg" class=" control-label"></label>
+                        <input asp-for="EstoqueMinimoKg" class="form-control money" readonly />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label asp-for="EstoqueMinimoDias" class=" control-label"></label>
+                        <input asp-for="EstoqueMinimoDias" class="form-control money" readonly />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="PesoEmbalagem" class=" control-label"></label>
+                        <input asp-for="PesoEmbalagem" class="form-control money" readonly />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="CmCochoIndicado" class=" control-label"></label>
+                        <input asp-for="CmCochoIndicado" class="form-control money" readonly />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label asp-for="ValorKg" class=" control-label"></label>
+                        <input asp-for="ValorKg" class="form-control money" readonly />
+                    </div>
+                </div>
+            </fieldset>
+        </div>
+    </div>
+    <div class="text-center mt-3">
+        <button autofocus type="submit" class="btn btn-danger"><i class="fa fa-trash"></i>&nbsp;Remover</button>
+        <a asp-action="Index" class="btn btn-info"><i class="fa fa-times"></i>&nbsp;Voltar</a>
+    </div>
+</form>

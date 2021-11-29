@@ -1,0 +1,68 @@
+﻿@using PlataformaWeb.WebApp.Extensions
+
+<div class="modal fade" id="logAlteracaoMateriaSecaModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="labelInsumoAlimentoModal"></h5>
+                <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+               <div class="form-row">
+                   <div class="col-12">
+                       <div class="table-responsive">
+                           <table id="tableLogsAlteracaoMsModal" class="table table-hover table-striped">
+                               <thead></thead>
+                               <tbody></tbody>
+                           </table>
+                       </div>
+                   </div>
+               </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        $('#tableLogsAlteracaoMsModal').grid({
+            "bSort": false,
+            columns: [
+                {
+                    title: "Data Alteração", className: 'text-center',
+                    data: function (row, type, val, meta) {
+                        return FormatarData(row.dataAlteracao)
+                    }
+                },                
+                {
+                    title: "Matéria Seca Atual", className: "text-right",
+                    data: function (row, type, val, meta) {
+                        return formataMoeda(row.materiaSecaAtual, 2, '.', ',');
+                    }
+                },
+                {
+                    title: "Matéria Seca Anterior", className: "text-right",
+                    data: function (row, type, val, meta) {
+                        return formataMoeda(row.materiaSecaAnterior, 2, '.', ',');
+                    }
+                },
+                { title: "Usuário", className: "text-left", data: "usuario" },                
+            ]
+        });
+
+    });
+
+    function initLogAlteracaoMsInsumo(insumo) {
+
+        $('#labelInsumoAlimentoModal').html("Logs Alteração Matéria Seca: " + insumo.nome);
+
+        $.getUrlAjax(null, 'insumos-historico-ms/' + insumo.id, true, function (res) {
+            console.log(res);
+            $('#tableLogsAlteracaoMsModal').grid('setData', res.data);
+            $('#logAlteracaoMateriaSecaModal').modal("show");
+        });
+    }
+
+</script>

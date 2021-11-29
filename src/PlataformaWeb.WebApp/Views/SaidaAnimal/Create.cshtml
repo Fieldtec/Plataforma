@@ -1,0 +1,336 @@
+﻿@model SaidaAnimalCadastroViewModel;
+@using PlataformaWeb.WebApp.Extensions
+@using PlataformaWeb.Business.DTO;
+@{
+    ViewData["Title"] = "Nova Saída";
+    List<LoteSaidaDTO> lotesSaidas = ViewBag.lotes;
+    List<LocalLoteDTO> locais = ViewBag.locais;
+}
+
+
+<div class="row align-items-center justify-content-center">
+    <div class="col-lg-10">
+        <vc:summary></vc:summary>
+    </div>
+    <div class="col-lg-10">
+        <fieldset class="form h-100">
+            <legend class="FundoDestaque">Dados do Lote</legend>
+            <div class="form-row">
+                <div class="form-group col-md-3">
+                    <label for="LoteSaida" class=" control-label">Lote Saída</label>
+                    <select id="LoteSaida" class="form-control numerico" required
+                            asp-items="this.ObterListaSuspensa(lotesSaidas.Select(x => new SelectListItem(x.NumeroLote.ToString(), x.NumeroLote.ToString())).ToList())">
+                    </select>
+                </div>
+                <div class="form-group col-md-3">
+                    <label for="DataEmbarque" class="control-label">Dt. Embarque</label>
+                    <input id="DataEmbarque" name="dataEmbarque" class="form-control" disabled />
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="Destino" class="control-label">Destino</label>
+                    <input id="Destino" name="destino" class="form-control" disabled />
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group col-md-3">
+                    <label for="Tipo" class="control-label">Tipo</label>
+                    <select id="Tipo" class="form-control" asp-items="this.ObterSelectTipoSaida()" disabled></select>
+                </div>
+                <div class="form-group col-md-3">
+                    <label for="QuantidadeAnimalPrevista" class="control-label">Qtd. Animal Prevista</label>
+                    <input id="QuantidadeAnimalPrevista" name="quantidadeAnimalPrevista" class="form-control" disabled />
+                </div>
+                <div class="form-group col-md-3">
+                    <label for="QuantidadeAnimalEmbarcado" class="control-label">Qtd. Animal Embarcado</label>
+                    <input id="QuantidadeAnimalEmbarcado" class="form-control numerico" disabled />
+                </div>
+            </div>
+        </fieldset>
+    </div>
+
+    <div id="div_dados_locais" class="col-lg-10 mt-3" style="display: none">
+        <fieldset class="form h-100">
+            <legend class="FundoDestaque">Locais</legend>
+
+            <form id="formDadosLote" enctype="multipart/form-data" novalidate>
+                <div class="form-row p-2">
+                    <div class="form-group col-xl-3 col-lg-4">
+                        <label for="LocalOrigem" class="control-label">Local Origem</label>
+                        <select id="LocalOrigem" name="local" class="form-control numerico" required
+                                asp-items="this.ObterListaSuspensa(locais.Select(x => new SelectListItem(x.Nome, x.Id.ToString())).ToList())">
+                        </select>
+                    </div>                    
+                    <div class="form-group col-xl-2 col-lg-4">
+                        <label for="QuantidadeAnimal" class="control-label">Total de Animais</label>
+                        <input id="QuantidadeAnimal" class="form-control" disabled />
+                    </div>
+                    <div class="form-group col-xl-3 col-lg-4">
+                        <label for="TotalAnimalEmbarcado" class="control-label">Tot. Animais Embarcados</label>
+                        <input id="TotalAnimalEmbarcado" name="quantidadeEmbarcado" class="form-control inteiro" required />
+                    </div>
+                    <div class="form-group col-xl-2 col-lg-4">
+                        <label for="PesoSaida" class="control-label">Peso Saída</label>
+                        <input id="PesoSaida" name="pesoMedio" class="form-control decimal" required />
+                    </div>
+                    <div class="form-group col-xl-2 col-lg-4">
+                        <button style="margin-top: 27px; margin-bottom: 0px" type="button" id="btn_novo_local" class="btn btn-sm btn-primary text-right mb-3"><i class="fa fa-plus"></i>&nbsp;Inserir</button>
+                    </div>
+                </div>
+            </form>
+
+            <div class="table-responsive">
+                <table id="tabelaLocais" class="table table-sm table-striped">
+                    <thead>
+                        <tr>
+                            <th>Local de Origem</th>
+                            <th class="text-right">Totais Animais Embarcados</th>
+                            <th class="text-right">Peso Saída</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </fieldset>
+    </div>
+
+</div>
+<div class="text-center mt-3">
+    <button id="btn_salvar_saida" type="button" class="btn btn-success"><i class="fa fa-save"></i>&nbsp;Salvar</button>
+    <a asp-action="Index" class="btn btn-info"><i class="fa fa-times"></i>&nbsp;Voltar</a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+
+        var lotesSaida = @Html.Raw(Json.Serialize(lotesSaidas));
+        var locais = @Html.Raw(Json.Serialize(locais));
+
+        var indexAtualizacao = -1, currentLoteSaida = null, currentLocal = null;
+
+
+        $(document).ready(function () {
+
+            $(document).on('click', '#btn_salvar_saida', function () {
+                salvarSaida();
+            });
+
+            $(document).on('change', '#LoteSaida', function () {
+                var saida = $(this).getValue();
+                if (saida) {
+                    $('#div_dados_locais').show();
+                    currentLoteSaida = lotesSaida.find(x => x.numeroLote === saida);
+                } else {
+                    $('#div_dados_locais').hide();
+                    currentLoteSaida = null;
+                }
+
+                preencherDadosLoteSaida();
+            });
+
+            $(document).on('change', '#LocalOrigem', function () {
+                var local = $(this).getValue();
+                if (local) {
+                    var localSelecionado = locais.find(x => x.id === local);
+                    $('#QuantidadeAnimal').val(localSelecionado.lotacao);
+                } else {
+                    $('#QuantidadeAnimal').val('');
+                }
+            });
+
+            $(document).on('click', '#btn_novo_local', function () {                
+                var isValidForm = $('#formDadosLote').ValidForm();
+                if (isValidForm) {
+                    inserirLocal($('#formDadosLote').GetJsonData());
+                }
+            });
+
+            $('#tabelaLocais').grid({
+                "bSort": false,
+                columns: [
+                    {
+                        title: "Local de Origem",
+                        data: function (row, type, val, meta) {
+                            if (type === "display") {
+                                return row.local.nome;
+                            }
+                            return row;
+                        }
+                    },
+                    {
+                        title: "Totais Animais Embarcados", className: "text-right",
+                        data: function (row, type, val, meta) {
+                            if (type === "display") {
+                                return row.quantidadeEmbarcado;
+                            }
+                            return row;
+                        }
+                    },                    
+                    {
+                        title: "Peso Médio", className: "text-right",
+                        data: function (row, type) {
+                            if (type === "display") {
+                                return formataMoeda(row.pesoMedio, 2, ",", ".");
+                            }
+                            return row;
+                        }
+                    },
+                    {
+                        title: "Ações", className: "text-center", data: function (row, type, val, meta) {
+                            if (type === "display") {
+                                var id = row.local.id;
+                                return `<a style="color: white !important" title="Editar" class="btn btn-sm btn-warning td_editar_local" data-id="${id}"><span class="fas fa-edit"></span></a> <a style="color: white !important" title="Remover" class="btn btn-sm btn-danger td_deletar_local" data-id="${id}"><span class="fas fa-trash-alt"></span></a>`
+                            }
+                            return row;
+                        }
+                    }
+                ]
+            });
+
+            $(document).on("click", '.td_deletar_local', function (e) {
+
+                e.preventDefault();
+
+                var index = $(e.currentTarget).parents("tr").index(),
+                    list = $('#tabelaLocais').grid('getData');
+
+                list.splice(index, 1);
+                $('#tabelaLocais').grid('setData', list);
+
+                obterTotalAnimaisEmbarcados(list);
+            });
+
+            $(document).on("click", '.td_editar_local', function (e) {
+                e.preventDefault();
+                indexAtualizacao = $(e.currentTarget).parents("tr").index();
+                var data = $('#tabelaLocais').grid('getByIndex', indexAtualizacao);
+                $('#LocalOrigem').val(data.local.id);
+                $('#QuantidadeAnimal').val(data.local.lotacao);
+                $('#TotalAnimalEmbarcado').val(data.quantidadeEmbarcado);
+                $('#PesoSaida').val(formataMoeda(data.pesoMedio, 2, ',', '.'));
+
+                $('#LocalOrigem').focus();
+            });
+
+        });
+
+        function preencherDadosLoteSaida() {
+            if (currentLoteSaida) {
+                $('#DataEmbarque').val(FormatarData(currentLoteSaida.dataEmbarque));
+                $('#Destino').val(currentLoteSaida.produtorFrigorificoDestino);
+                $('#Tipo').val(currentLoteSaida.tipoSaida);
+                $('#QuantidadeAnimalPrevista').val(currentLoteSaida.quantidadeAnimalPrevista);
+
+                var listLocais = $('#tabelaLocais').grid('getData');
+                obterTotalAnimaisEmbarcados(listLocais);
+            } else {
+                $('#DataEmbarque, #Destino, #Tipo, #QuantidadeAnimalPrevista, #QuantidadeAnimalEmbarcado').val("");
+            }
+        }
+
+        function inserirLocal(json) {
+
+            var local = locais.find(x => x.id === json.local);
+
+            if (local.lotacao < json.quantidadeEmbarcado) {
+                MostraAlerta("Quantidade de Animais embarcados é maior que a Quantidade de Animais no lote", "Atenção", TipoAlerta.Warning,
+                    $('#TotalAnimalEmbarcado'), true, true);
+
+                return;
+            }
+
+            if (!json.pesoMedio) {
+                MostraAlerta("Peso Médio precisa ser informado", "Atenção", TipoAlerta.Warning,
+                    $('#PesoSaida'), true, true);
+
+                return;
+            }
+
+            json.local = local;
+            json.lote = { id: local.idLote };
+
+            var listLocais = $('#tabelaLocais').grid('getData');
+
+            if (indexAtualizacao === -1) {
+
+                if (listLocais.find(x => x.local.id === json.local.id)) {
+                    MostraAlerta(`Local ${local.nome} já foi adicionado anteriormente`, "Atenção", TipoAlerta.Warning,
+                        $('#LocalOrigem'), false, true);
+
+                    return;
+                }
+
+                listLocais.push(json);
+            } else {
+
+                var index = listLocais.findIndex(x => x.local.id === json.local.id);
+                if (index !== -1 && index !== indexAtualizacao) {
+                    MostraAlerta(`Local ${local.nome} já foi adicionado anteriormente`, "Atenção", TipoAlerta.Warning,
+                        $('#LocalOrigem'), false, true);
+
+                    return;
+                }
+
+                listLocais[indexAtualizacao] = json;
+            }
+
+            $('#tabelaLocais').grid('setData', listLocais);
+
+            indexAtualizacao = -1;
+
+            obterTotalAnimaisEmbarcados(listLocais);
+
+            $('#formDadosLote').find('input, select').val("");
+            $('#formDadosLote').find('input, select').eq(0).focus();
+
+        }
+
+        function obterTotalAnimaisEmbarcados(list) {
+            var total = 0;
+            $.each(list, function (i, item) {
+                total += item.quantidadeEmbarcado;
+            });
+            
+            $('#QuantidadeAnimalEmbarcado').val(total);
+        }
+       
+
+        function salvarSaida() {
+
+            var saidaAnimal = obterObjetoSaidaAnimal();
+
+            if (!saidaAnimal) return;
+
+            $.postUrlAjax(saidaAnimal, 'nova-saida-animal', true, function (res) {
+                MostraAlerta("Saída lançada com sucesso!", "Operação realizada", TipoAlerta.Sucesso, $(this), false, false, function () {
+                    $.load();
+                    window.location.href = raizAplicacao + "saidas-animais";
+                });
+            });
+        }
+
+        function obterObjetoSaidaAnimal() {
+
+            if (!currentLoteSaida) {
+                MostraAlerta("Selecione o Lote de Saída", "Atenção", TipoAlerta.Warning, $('#LoteSaida'), false, true);
+                return null;
+            }
+
+            var lotes = $('#tabelaLocais').grid('getData');
+
+            if (!lotes.length) {
+                MostraAlerta("É necessário inserir ao menos um Lote", "Atenção", TipoAlerta.Warning, $('#LocalOrigem'), false, true);
+                return null;
+            }
+
+            return {
+                id: currentLoteSaida.id,
+                tipoSaida: currentLoteSaida.tipoSaida,
+                destino: currentLoteSaida.produtorFrigorificoDestino,
+                quantidadeAnimalPrevisto: currentLoteSaida.quantidadeAnimalPrevista,
+                quantidadeAnimalEmbarcado: $('#QuantidadeAnimalEmbarcado').getValue(),
+                lotes: lotes
+            };
+        }
+    </script>
+}

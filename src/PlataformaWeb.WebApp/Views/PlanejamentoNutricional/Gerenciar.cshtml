@@ -1,0 +1,228 @@
+﻿@using PlataformaWeb.WebApp.Extensions
+
+@{ ViewData["Title"] = "Gerenciamento de Planejamentos"; }
+
+<div class="row align-items-center justify-content-center">
+    <div class="col-lg-10">
+        <vc:summary></vc:summary>
+    </div>
+    <div class="col-lg-10">
+        <fieldset class="form">
+            <legend class="FundoDestaque">Gerenciamento de Planejamentos</legend>
+            <form id="formBuscar" novalidate>
+                <div class="form-row">
+                    <div class="form-group col-xl-3 col-lg-5">
+                        <label class="control-label">Planejamento de Origem</label>
+                        <select id="PlanejamentoOrigem" class="form-control LetraFormulario" required></select>
+                    </div>                   
+                </div>
+            </form>
+            <form id="formGerenciar" novalidate class="editar_lotes">
+                <div class="mt-4 table-responsive table-fixed">
+                    <table id="tableLotes" class="table table-hover table-striped">
+                        <thead></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </form>
+        </fieldset>
+    </div>
+</div>
+<div class="text-center mt-3 editar_lotes">
+    <button id="btn_salvar" type="submit" class="btn btn-success"><i class="fa fa-save"></i>&nbsp;Salvar</button>
+</div>
+
+@section Scripts {
+    <script src="~/lib/selectize.js/js/standalone/selectize.min.js"></script>
+    <link href="~/lib/selectize.js/css/selectize.bootstrap3.min.css" rel="stylesheet" />
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        var $PlanejamentoOrigem = null;
+
+        $(document).ready(function () {
+            var planejamentoOrigem = null;
+            var planejamentos = @Html.Raw(Json.Serialize(ViewBag.planejamentos));
+
+            $(document).on('change', '.selecionar_nota', function () {
+                var strNota = $(this).val(),
+                    ajuste = null;
+
+                if (strNota) {
+                    $.each(notasLeitura, function (i, nota) {
+                        if (nota.nome === strNota) {
+                            ajuste = nota.ajustePorcentagem;
+                            return;
+                        }
+                    });
+                }
+                var $tr = $(this).parents('tr');
+                if (ajuste === null)
+                    $tr.find('td:eq(3)').html(' - ');
+                else {
+                    $tr.find('td:eq(3)').html(ajuste + ' %');
+                }
+            });
+
+
+            $(document).on('click', '#btn_buscar', function () {
+                var isValid = $('#formBuscar').ValidForm();
+                if (isValid) {
+                    buscarLotes();
+                }
+            });
+
+            $(document).on('click', '#btn_salvar', function () {
+                var isValid = $('#formGerenciar').ValidForm();
+                if (isValid) {
+                    salvarLotes();
+                }
+            });
+
+            $('#tableLotes').grid({
+                "bSort": false,
+                columns: [
+                    {
+                        title: "Data de Entrada", className: 'text-center',
+                        data: function (row, type, val, meta) {
+                            if (type === "display") {
+                                return FormatarData(row.dataEntrada);
+                            }
+                            return row;
+                        }
+                    },
+                    { title: "Local", data: "local" },
+                    { title: "Qtd. Animais", data: "quantidadeAnimais", className: "text-right" },
+                    {
+                        title: "Planejamento Destino",
+                        data: function (row, type) {
+                            if (type === "display") {
+                                return row.idPlanejamento === null;
+                            }
+                            return row;
+                        }
+                    },
+                ],
+                afterFetch: function (rows, data) {
+                    $.each(rows, function (i, item) {
+                        var $row = $(item),
+                            $liPlanejamento = $row.find('td:eq(3)');
+
+                        $liPlanejamento.html(obterSelect(data[i].idPlanejamento, data[i].tipo));
+                    });
+                }
+            });
+
+            $PlanejamentoOrigem = criarSelectizeObjeto('#PlanejamentoOrigem', 'buscar-planejamento', {
+                onChange: function (value) {
+                    planejamentoOrigem = this.options[value] || null;
+
+                    if (planejamentoOrigem) {
+                        buscarLotes();
+                    } else {
+                        $('#tableLotes').grid('setData', []);
+                    }
+
+                },
+                options: planejamentos,
+                render: {
+                    option: function (item, escape) {
+
+                        var tipo = item.tipo && !isNaN(item.tipo)
+                            ? `<span class="selectize-subtitulo">Tipo: ${obterNomePastoCurralPorCodigo(item.tipo)}</span>`
+                            : ``;
+
+
+                        return `<div class="selectize-div">
+                                <span class="selectize-titulo">${item.nome}</span>
+                                ${tipo}
+                            </div>`;
+                    }
+                },
+                load: function (query, callback) {
+                    if (query.length < 1) {
+                        callback(planejamentos);
+                    } else {
+                        var listFiltered = planejamentos.filter(x => x.nome.toUpperCase().includes(query.toUpperCase()));
+                        callback(listFiltered);
+                    }                  
+                }
+            });
+
+            $PlanejamentoOrigem[0].selectize.focus();
+
+            function salvarLotes() {
+                var jsonData = obterJsonData();
+
+                if (!jsonData) return;
+
+                MostraAlertaConfirma("Confirma a edição dos lotes?", 'Confirma?', TipoAlerta.Warning, $(this), function () {
+                    $.postUrlAjax(jsonData, 'gerenciar-planejamentos', true, function (res) {
+                        $('#tableLotes').grid('setData', []);
+                        planejamentoOrigem = null;
+                        $PlanejamentoOrigem[0].selectize.setValue(null);
+
+                        MostraAlerta("Lotes Atualizados com Sucesso.", "Sucesso", TipoAlerta.Sucesso, $(this), true, true, function () {
+                            $PlanejamentoOrigem[0].selectize.focus();
+                        });
+                    });
+                });
+
+            }
+
+            function obterJsonData() {
+                debugger
+                var list = $('#tableLotes').grid('getData'),
+                    listEditados = [];
+
+                $.each(list, function (i, item) {
+
+                    var $tr = $(`#tableLotes tbody tr:eq(${i})`),
+                        $select = $tr.find('select');
+
+                    if (!$select.length) return;
+
+                    var planejamento = $select.getValue();
+
+                    if (planejamento !== item.idPlanejamento) {
+                        listEditados.push({ idPlanejamentoDestino: planejamento, lote: item });
+                    }
+                });
+
+                if (!listEditados.length) {
+                    MostraAlerta("Nenhum lote foi editado.", "Atenção", TipoAlerta.Warning, $(this), false, false, function () {
+                        $(`#tableLotes tbody tr td select`).eq(0).focus();
+                    });
+                    return null;
+                }
+
+                return listEditados;
+            }
+
+            function obterSelect(idPlanejamento, tipo) {
+               
+                var html = [];
+                html.push("<div class='form-group'>")
+                html.push("<select class='form-control LetraFormulario selecionar_planejamento numerico' name='idPlanejamentoDestino'>")
+                $.each(planejamentos, function (i, item) {
+                    if (tipo === item.tipo) {
+                        var selected = item.id === idPlanejamento ? 'selected' : '';
+                        html.push(`<option value='${item.id}' ${selected}>${item.nome}</option>`);
+                    }
+                });
+                html.push("</select>");
+                html.push("<div/>")
+                return html.join("");
+            }
+
+            function buscarLotes() {
+
+                if (!planejamentoOrigem) return;
+
+                $.getUrlAjax(null, 'gerenciar-planejamentos/' + planejamentoOrigem.id, true, function (res) {
+                    $('#tableLotes').grid('setData', res.data);
+                });
+            }
+
+        });
+    </script>
+}

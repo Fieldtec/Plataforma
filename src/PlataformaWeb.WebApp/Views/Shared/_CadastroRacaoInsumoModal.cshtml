@@ -1,0 +1,184 @@
+﻿@using PlataformaWeb.WebApp.Extensions
+
+<div class="modal fade" id="novaRacaoInsumoModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Novo Insumo</h5>
+                <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="formNovoInsumo" enctype="multipart/form-data" novalidate>
+                    <div class="row align-items-center justify-content-center">
+                        <input class="numerico" id="IdInsumo" name="id" type="hidden" />
+                        <div class="col-lg-12">
+                            <fieldset class="form h-100">
+                                <legend class="FundoDestaque">Dados do Insumo</legend>
+                                <div class="form-row">
+                                    <div class="form-group col-lg-12">
+                                        <label for="IdInsumoAlimento" class="control-label">Insumo/Alimento&nbsp;<i data-toggle="tooltip" data-placement="top" title="Digite parte do nome para fazer a busca" class="far fa-question-circle text-info helper"></i></label>
+                                        <select id="IdInsumoAlimento" name="idInsumoAlimento" class="form-control LetraFormulario" required></select>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group col-md-4">
+                                        <label for="PercentualMateriaSeca" class="control-label">% Matéria Seca</label>
+                                        <input id="PercentualMateriaSeca" name="percentualMateriaSeca" type="text" class="form-control decimal3" required />
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label for="KgMateriaSeca" class=" control-label">Kg Matéria Seca</label>
+                                        <input id="KgMateriaSeca" name="kgMateriaSeca" type="text" class="form-control decimal3" required />
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label for="ValorKgInsumo" class="control-label">Valor KG</label>
+                                        <input id="ValorKgInsumo" name="valorKg" type="text" class="form-control decimal3" required />
+                                    </div>
+                                </div>
+                            </fieldset>
+                        </div>
+                    </div>
+                    <div class="text-center mt-3">
+                        <button id="btn_cadastrar_insumo" type="button" class="btn btn-success"><i class="fa fa-save"></i>&nbsp;Salvar</button>
+                        <button class="btn btn-info" type="button" data-dismiss="modal"><i class="fa fa-times"></i>&nbsp;Fechar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/lib/selectize.js/js/standalone/selectize.min.js"></script>
+<link href="~/lib/selectize.js/css/selectize.bootstrap3.min.css" rel="stylesheet" />
+<script type="text/javascript">
+
+    var currentInsumo = null;
+    var currentData = null;
+    var $IdInsumoAlimento = null;
+
+    $(document).ready(function () {
+
+        var insumosAlimentos = @Html.Raw(Json.Serialize(ViewBag.insumos));
+
+        $('[data-toggle="tooltip"]').tooltip({
+            container: 'body'
+        });
+
+        $('.decimal3').maskMoney({ thousands: '.', decimal: ',', allowZero: true, suffix: '', precision: 3 });
+
+        $('#novaRacaoInsumoModal').on("show.bs.modal", function () {
+            if (currentData === null) {
+                $('#IdInsumo').val(0);
+                currentInsumo = null;
+                $IdInsumoAlimento[0].selectize.setValue(null);
+            } else {                
+                $('#IdInsumoAlimento').val(currentData.insumoAlimento.id);
+                //$IdInsumoAlimento[0].selectize.addOption(currentData.insumoAlimento);
+                $IdInsumoAlimento[0].selectize.setValue(currentData.insumoAlimento.id);
+                $('#PercentualMateriaSeca').val(formataMoeda(currentData.percentualMateriaSeca, 3, ',', '.'));
+                $('#KgMateriaSeca').val(formataMoeda(currentData.kgMateriaSeca, 3, ',', '.'));
+                $('#ValorKgInsumo').val(formataMoeda(currentData.valorKg, 3, ',', '.'));
+                $('#IdInsumo').val(currentData.id);
+            }
+        });
+
+        $('#novaRacaoInsumoModal').on("shown.bs.modal", function () {            
+            $('#IdInsumoAlimento-selectized').focus();
+        });        
+
+        $IdInsumoAlimento = $('#IdInsumoAlimento').selectize({
+            valueField: 'id',
+            labelField: 'nome',
+            searchField: 'nome',
+            create: false,
+            options: insumosAlimentos,
+            render: {
+                option: function (item, escape) {
+                    var fornecedorInsumo = item.nomeFornecedorInsumo || "";
+                    if (fornecedorInsumo) fornecedorInsumo = "Fornecedor: " + fornecedorInsumo;
+
+                    return `<div class="selectize-div">
+                                              <span class="selectize-titulo">${item.nome}</span>
+                                              <span class="selectize-subtitulo">${fornecedorInsumo}</span>
+                                            </div>`;
+                }
+            },
+            onChange: function (value) {
+                currentInsumo = this.options[value] || null;    
+                if (currentInsumo !== null) {
+                    $('#PercentualMateriaSeca').val(formataMoeda(currentInsumo.materiaSeca, 3, ",", "."));
+                }                
+            },
+            load: function (query, callback) {
+                if (query.length < 1) {
+                    callback(insumosAlimentos);
+                } else {
+                    var list = insumosAlimentos.filter(x => x.nome.toUpperCase().includes(query.toUpperCase()));
+                    callback(list);
+                }
+            }
+        });
+
+    });
+
+    function initModalInsumo(callback, data) {
+
+        $('#formNovoInsumo').ResetForm();
+        limparInsumoAlimento();
+
+        //caso for edição variável recebe dados
+        currentData = data || null;
+
+        $('#novaRacaoInsumoModal').modal("show");
+
+        $(document).off('click', '#btn_cadastrar_insumo');
+
+        $(document).on('click', '#btn_cadastrar_insumo', function (e) {
+            var isValid = $('#formNovoInsumo').ValidForm();
+
+            if (isValid) {
+                adicionarNovoInsumo(callback);
+            }
+        });
+
+    }
+
+    function limparInsumoAlimento() {
+        currentInsumo = null;
+        $IdInsumoAlimento[0].selectize.setValue(null);
+        //$IdInsumoAlimento[0].selectize.clearOptions();
+        //$IdInsumoAlimento[0].selectize.refreshOptions();
+    }
+
+    function adicionarNovoInsumo(callback) {
+
+        var data = $('#formNovoInsumo').GetJsonData();
+
+        data["insumoAlimento"] = currentInsumo;
+
+        if (data.insumoAlimento === null) {
+            MostraAlerta("Insumo precisa ser preenchido", "Atenção", TipoAlerta.Warning, $(this), false, false);
+            return;
+        }
+
+        //callback a ser chamado caso as informações inseridas forem válidas
+        var callbackAposSalvar = function () {
+            
+            if (currentData !== null) {
+                $('#novaRacaoInsumoModal').modal("hide");
+            } else {
+                $('#formNovoInsumo').ResetForm();
+                limparInsumoAlimento();
+                $('#IdInsumoAlimento-selectized').focus();
+            }
+        }
+
+        if (callback)
+            callback(data, callbackAposSalvar);
+        
+    }
+
+    
+
+</script>

@@ -1,0 +1,121 @@
+﻿@model SuplementoMineralViewModel;
+@using PlataformaWeb.WebApp.Extensions
+
+@{ ViewData["Title"] = "Cadastrar Novo Suplemento"; }
+
+<form id="form" asp-action="Create" enctype="multipart/form-data" novalidate>
+    <div class="row align-items-center justify-content-center">
+        <div class="col-xl-8 col-lg-11">
+            <vc:summary></vc:summary>
+        </div>
+        <div class="col-xl-8 col-lg-11">
+            <fieldset class="form h-100">
+                <legend class="FundoDestaque">Dados do Suplemento</legend>
+                <div class="form-row">
+                    <div class="form-group col-lg-6">
+                        <label asp-for="Nome" class="control-label"></label>
+                        <input autofocus asp-for="Nome" class="form-control" required />
+                    </div>
+                    <div class="form-group col-lg-6">
+                        <label for="IdFornecedor" class="control-label">Fornecedor de Insumo&nbsp;<i data-toggle="tooltip" data-placement="top" title="Digite parte do nome para fazer a busca ou clique no botão para cadastrar um novo fornecedor" class="far fa-question-circle text-info helper"></i></label>
+                        <div class="input-group">
+                            <select asp-for="IdFornecedor" class="form-control LetraFormulario" required></select>
+                            <div class="input-group-append">
+                                <button id="btn_abrir_modal_fornecedor" class="btn btn-sm btn-primary no_focus" type="button"><i class="fa fa-plus"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label asp-for="GanhoEsperado" class=" control-label"></label>
+                        <input asp-for="GanhoEsperado" class="form-control money" required />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="ConsumoEsperado" class=" control-label"></label>
+                        <input asp-for="ConsumoEsperado" class="form-control money" required />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="EstoqueMinimoKg" class=" control-label"></label>
+                        <input asp-for="EstoqueMinimoKg" class="form-control money" required />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label asp-for="EstoqueMinimoDias" class=" control-label"></label>
+                        <input asp-for="EstoqueMinimoDias" class="form-control money" required />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="PesoEmbalagem" class=" control-label"></label>
+                        <input asp-for="PesoEmbalagem" class="form-control money" required />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="CmCochoIndicado" class=" control-label"></label>
+                        <input asp-for="CmCochoIndicado" class="form-control money" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label asp-for="ValorKg" class=" control-label"></label>
+                        <input asp-for="ValorKg" class="form-control money" />
+                    </div>
+                </div>
+            </fieldset>
+        </div>
+    </div>
+    <div class="text-center mt-3">
+        <button type="submit" class="btn btn-success"><i class="fa fa-save"></i>&nbsp;Salvar</button>
+        <a asp-action="Index" class="btn btn-info"><i class="fa fa-times"></i>&nbsp;Voltar</a>
+    </div>
+</form>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script src="~/lib/selectize.js/js/standalone/selectize.min.js"></script>
+    <link href="~/lib/selectize.js/css/selectize.bootstrap3.min.css" rel="stylesheet" />
+    <script>
+
+        var fornecedores = @Html.Raw(Json.Serialize(ViewBag.fornecedores));
+
+        $(document).ready(function () {
+            $('#form').SubmitForm();
+
+            var $IdFornecedor = $('#IdFornecedor').selectize({
+                valueField: 'id',
+                labelField: 'nome',
+                searchField: 'nome',
+                create: false,
+                options: fornecedores,
+                render: {
+                    option: function (item, escape) {
+                        return `<div class="selectize-div">
+                                      <span class="selectize-titulo">${item.nome}</span>
+                                      <span class="selectize-subtitulo">${item.cidade} - ${item.uf}</span>
+                                    </div>`;
+                    }
+                },
+                load: function (query, callback) {
+                    if (query.length < 1) {
+                        callback(fornecedores);
+                    } else {
+                        var list = fornecedores.filter(x => x.nome.toUpperCase().includes(query.toUpperCase()));
+                        callback(list);
+                    }
+                }
+            });
+
+            $('#btn_abrir_modal_fornecedor').click(function () {
+                initModalFornecedor(callbackFornecedorCadastrado);
+            });
+
+            function callbackFornecedorCadastrado(data) {
+                fornecedores.push(data);
+                $IdFornecedor[0].selectize.addOption(data);
+                $IdFornecedor[0].selectize.setValue(data.id);
+                $('#GanhoEsperado').focus();
+            }
+
+        });
+    </script>
+    @{await Html.RenderPartialAsync("_CadastroFornecedorInsumoModal");}
+}

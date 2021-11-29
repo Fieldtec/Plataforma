@@ -1,0 +1,183 @@
+﻿@model LoteSaidaViewModel;
+@using PlataformaWeb.WebApp.Extensions
+
+@{ ViewData["Title"] = "Cadastrar Novo Lote"; }
+
+<form id="form" enctype="multipart/form-data" novalidate>
+    <div class="row align-items-center justify-content-center">
+        <div class="col-xl-8 col-lg-10">
+            <vc:summary></vc:summary>
+        </div>
+        <div class="col-xl-8 col-lg-10">
+            <fieldset class="form h-100">
+                <legend class="FundoDestaque">Dados do Lote</legend>
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label asp-for="DataEmbarque" class=" control-label"></label>
+                        <input asp-for="DataEmbarque" name="dataEmbarque" type="text" class="form-control LetraFormulario data" required />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="TipoSaida" class=" control-label"></label>
+                        <select asp-for="TipoSaida" name="tipoSaida" class="form-control numerico" required asp-items="this.ObterSelectTipoSaida()"></select>
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="QuantidadeAnimalPrevisto" class=" control-label"></label>
+                        <input asp-for="QuantidadeAnimalPrevisto" name="quantidadeAnimalPrevisto" type="text" class="form-control inteiro" required />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-6 div_produtor" style="display: none">
+                        <label asp-for="ProdutorDestino" class=" control-label"></label>
+                        <select asp-for="ProdutorDestino" name="produtorDestino" required class="form-control"></select>
+                    </div>
+                    <div class="form-group col-md-6 div_produtor" style="display: none">
+                        <label for="Propriedade" class=" control-label">Propriedade</label>
+                        <input id="Propriedade" class="form-control" disabled />
+                    </div>
+                    <div class="form-group col-md-6 div_frigorifico" style="display: none">
+                        <label asp-for="FrigorificoDestino" class=" control-label"></label>
+                        <select asp-for="FrigorificoDestino" name="frigorificoDestino" required class="form-control"></select>
+                    </div>
+                    <div class="form-group col-md-6 div_frigorifico" style="display: none">
+                        <label for="FrigorificoCidade" class=" control-label">Cidade/UF</label>
+                        <input id="FrigorificoCidade" type="text" class="form-control" disabled />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label asp-for="QuantidadeAnimaEmbarcado" class=" control-label"></label>
+                        <input asp-for="QuantidadeAnimaEmbarcado" name="quantidadeAnimalEmbarcado" class="form-control decimal" disabled />
+                    </div>
+                </div>
+            </fieldset>
+        </div>
+    </div>
+    <div class="text-center mt-3">
+        <button id="btn_salvar_lote" type="button" class="btn btn-success"><i class="fa fa-save"></i>&nbsp;Salvar</button>
+        <a asp-action="Index" class="btn btn-info"><i class="fa fa-times"></i>&nbsp;Voltar</a>
+    </div>
+</form>
+
+@section Scripts {
+    <script src="~/lib/selectize.js/js/standalone/selectize.min.js"></script>
+    <link href="~/lib/selectize.js/css/selectize.bootstrap3.min.css" rel="stylesheet" />
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        var $Frigorifico, $ProdutorParceiro = null;
+        var currentFrigorifico, currentProdutoParceiro = null;
+        $(document).ready(function () {
+
+            var produtores = @Html.Raw(Json.Serialize(ViewBag.produtores));
+            var frigorificos = @Html.Raw(Json.Serialize(ViewBag.frigorificos));
+
+            $(document).on('click', '#btn_salvar_lote', function () {
+                var isValid = $('#form').ValidForm();
+                if (isValid) {
+                    salvarDadosLote();
+                }
+            });
+
+            $(document).on('change', '#TipoSaida', function () {
+                var tipo = $(this).val();
+                if (tipo == 1) { //abate
+                    $('#Propriedade').val("");
+                    $ProdutorParceiro[0].selectize.disable();
+                    $ProdutorParceiro[0].selectize.setValue(null);
+                    //$ProdutorParceiro[0].selectize.clearOptions();
+                    //$ProdutorParceiro[0].selectize.refreshOptions();
+                    $Frigorifico[0].selectize.enable();
+                    $('.div_produtor').hide();
+                    $('.div_frigorifico').show();
+                } else if (tipo == 2) { //venda
+                    $('#FrigorificoCidade').val("");
+                    $Frigorifico[0].selectize.disable();
+                    $Frigorifico[0].selectize.setValue(null);
+                    //$Frigorifico[0].selectize.clearOptions();
+                    //$Frigorifico[0].selectize.refreshOptions();
+                    $ProdutorParceiro[0].selectize.enable();
+                    $('.div_frigorifico').hide();
+                    $('.div_produtor').show();
+                } else {
+                    $('#Propriedade, #FrigorificoCidade').val("");
+                    $ProdutorParceiro[0].selectize.disable();
+                    $ProdutorParceiro[0].selectize.setValue(null);
+                    //$ProdutorParceiro[0].selectize.clearOptions();
+                    //$ProdutorParceiro[0].selectize.refreshOptions();
+                    $Frigorifico[0].selectize.disable();
+                    $Frigorifico[0].selectize.setValue(null);
+                    //$Frigorifico[0].selectize.clearOptions();
+                    //$Frigorifico[0].selectize.refreshOptions();
+                    $ProdutorParceiro[0].selectize.enable();
+                    $('.div_frigorifico, .div_produtor').hide();
+                }
+            });
+
+            $Frigorifico = criarSelectizeObjeto('#FrigorificoDestino', 'buscar-frigorifico', {
+                options: frigorificos,
+                onChange: function (value) {
+                    currentFrigorifico = this.options[value] || null;
+                    if (currentFrigorifico) {
+                        $('#FrigorificoCidade').val(currentFrigorifico.cidade + ' - ' + currentFrigorifico.uf);
+                    } else {
+                        $('#FrigorificoCidade').val('');
+                    }
+                },
+                render: {
+                    option: function (item, escape) {
+                        return `<div class="selectize-div">
+                                <span class="selectize-titulo">${item.nome}</span>
+                                <span class="selectize-subtitulo">Cidade/UF: ${item.cidade}/${item.uf}</span>
+                            </div>`;
+                    }
+                }
+            }, frigorificos);
+
+            $ProdutorParceiro = criarSelectizeObjeto('#ProdutorDestino', 'buscar-produtor-parceiro', {
+                options: produtores,
+                onChange: function (value) {
+                    currentProdutoParceiro = this.options[value] || null;
+                    if (currentProdutoParceiro) {
+                        $('#Propriedade').val(currentProdutoParceiro.nomePropriedadeParceira);
+                    } else {
+                        $('#Propriedade').val('');
+                    }
+                },
+                render: {
+                    option: function (item, escape) {
+                        return `<div class="selectize-div">
+                                <span class="selectize-titulo">${item.nome}</span>
+                                <span class="selectize-subtitulo">Propriedade: ${item.nomePropriedadeParceira}</span>
+                            </div>`;
+                    }
+                }
+            }, produtores);
+
+            setTimeout(function () {
+                $('#DataEmbarque').focus();
+            }, 100);
+
+            function salvarDadosLote() {
+
+                var modelLote = Object.assign($('#form').GetJsonData(), {
+                    frigorificoDestino: currentFrigorifico,
+                    produtorDestino: currentProdutoParceiro
+                });
+
+                var fnSalvar = function () {
+                    $.postUrlAjax(modelLote, 'novo-lote-saida', true, function (res) {
+                        MostraAlertaConfirma(`Lote N° ${res.numeroLote} cadastrado com sucesso! Deseja lançar a saída dos animais?`, "Operação realizada", TipoAlerta.Sucesso, $(this), function () {
+                            $.load();
+                            window.location.href = raizAplicacao + "nova-saida-animal";
+                        }, function () {
+                            $.load();
+                            window.location.href = raizAplicacao + "lotes-de-saida";
+                        });
+                    });
+                }
+
+                fnSalvar();
+            }
+
+        });
+    </script>
+}

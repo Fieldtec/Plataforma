@@ -1,0 +1,77 @@
+﻿@model MovimentacaoEntreLoteDelecaoViewModel;
+@using PlataformaWeb.WebApp.Extensions;
+@{ ViewData["Title"] = "Confirma a exclusão?"; }
+
+<style>
+    select[readonly] {
+        background: #eee;
+        pointer-events: none;
+        touch-action: none;
+    }
+</style>
+
+<form id="form" asp-action="Delete" enctype="multipart/form-data" novalidate>
+    <div class="row align-items-center justify-content-center">
+        <div class="col-xl-7 col-lg-10">
+            <vc:summary></vc:summary>
+        </div>
+        <div class="col-xl-7 col-lg-10">
+            <fieldset class="form h-100">
+                <legend class="FundoDestaque">Dados da Movimentação</legend>
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label asp-for="Tipo" class="control-label"></label>
+                        <select asp-for="Tipo" class="form-control LetraFormulario numerico" asp-items="this.ObterSelectTipoMovimentacaoEntrePastos()" readonly></select>
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="DataMovimentacao" class="control-label"></label>
+                        <input asp-for="DataMovimentacao" readonly type="text" class="form-control" asp-format="{0:dd/MM/yyyy}" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label asp-for="LocalOrigem" class=" control-label"></label>
+                        <input asp-for="LocalOrigem" readonly class="form-control LetraFormulario" />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="QuantidadeAnimais" class="control-label"></label>
+                        <input asp-for="QuantidadeAnimais" readonly class="form-control" />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="DataLote" class=" control-label"></label>
+                        <input asp-for="DataLote" readonly type="text" class="form-control data" asp-format="{0:dd/MM/yyyy}" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label asp-for="LocalDestino" class=" control-label">Local de Destino</label>
+                        <input asp-for="LocalDestino" readonly class="form-control LetraFormulario" />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="Motivo" class=" control-label"></label>
+                        <input asp-for="Motivo" class="form-control LetraFormulario" readonly />
+                    </div>
+                </div>
+            </fieldset>
+        </div>
+    </div>
+    <div class="text-center mt-3">
+        <button id="btn_deletar" autofocus type="submit" class="btn btn-danger"><i class="fa fa-trash"></i>&nbsp;Remover</button>
+        <a asp-action="Index" class="btn btn-info"><i class="fa fa-times"></i>&nbsp;Voltar</a>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $(document).on('click', '#btn_deletar', function (e) {
+                e.preventDefault();
+
+                MostraAlertaConfirma("A exclusão da Movimentação fará com que todos os animais voltem para o Local de Origem. Confirma operação?",
+                    "Atenção", TipoAlerta.Danger, $(this), function () {
+                        $('#form').submit();
+                    });
+            });
+        });
+    </script>
+}

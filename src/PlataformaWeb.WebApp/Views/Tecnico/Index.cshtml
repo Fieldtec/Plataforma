@@ -1,0 +1,62 @@
+﻿@model IEnumerable<PlataformaWeb.WebApp.Models.TecnicoViewModel>
+@using PlataformaWeb.WebApp.Extensions
+
+@{
+    ViewData["Title"] = "Técnicos Cadastrados";
+}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-end align-content-center align-items-center">
+        <a class="btn btn-sm btn-primary" href="@Url.Content("~/novo-tecnico")"><i class="fa fa-plus"></i>&nbsp;Novo Técnico</a>
+    </div>
+    <div class="card-body">
+        <vc:summary />
+        <div class="table-responsive table-fixed">
+            <table class="table table-hover table-striped">
+                <thead>
+                    <tr role="row">
+                        <th>Nome</th>
+                        <th>Email</th>
+                        <th>Usuário</th>
+                        <th class="text-center">Dt. Cadastro</th>
+                        <th class="text-right">Qtd. Licenças</th>
+                        <th style="width: 150px;" class="text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Count() > 0)
+                    {
+                        @foreach (var tecnico in Model)
+                        {
+                            <tr role="row">
+                                <td>@tecnico.Nome</td>
+                                <td>@tecnico.Email</td>
+                                <td>@tecnico.Usuario</td>
+                                <td class="text-center">@tecnico.DataRegistro.Value.ToShortDateString()</td>
+                                <td class="text-right">@tecnico.QtdeLicenca</td>
+                                <td class="text-center">
+                                    <a asp-action="Edit" asp-route-id="@tecnico.Id" title="Editar" class="btn btn-sm btn-warning">
+                                        <span class="fas fa-edit"></span>
+                                    </a>
+                                    <a asp-action="Details" asp-route-id="@tecnico.Id" title="Detalhe" class="btn btn-sm btn-primary">
+                                        <span class="fas fa-search"></span>
+                                    </a>
+                                    <a asp-action="Delete" asp-route-id="@tecnico.Id" title="Remover" class="btn btn-sm btn-danger">
+                                        <span class="fas fa-trash-alt"></span>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr role="row">
+                            <td class="text-center" colspan="6">Nenhum Técnico Cadastrado</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <label class="font-weight-bold mt-2">Total de Registros: @Model.Count()</label>
+    </div>
+</div>

@@ -1,0 +1,98 @@
+﻿@model PlanejamentoNutricionalViewModel;
+@inject PlataformaWeb.Business.Interfaces.IUser AppUser
+@using PlataformaWeb.Business.Enums
+@using PlataformaWeb.WebApp.Extensions
+
+@{ ViewData["Title"] = "Detalhe Planejamento: " + @Model.Nome; }
+
+<div class="row align-items-center justify-content-center">
+    <div class="col-xl-10 col-lg-12">
+        <fieldset class="form h-100" disabled>
+            <legend class="FundoDestaque">Dados do Planejamento</legend>
+            <div class="form-row">
+                <div class="form-group col-lg-6">
+                    <label asp-for="Nome" class="control-label"></label>
+                    <input asp-for="Nome" class="form-control" required />
+                </div>
+                <div class="form-group col-md-6">
+                    <label asp-for="Tipo" class=" control-label"></label>
+                    <select asp-for="Tipo" class="form-control numerico" asp-items="this.ObterSelectTipoPlanejamento()" required></select>
+                </div>
+            </div>
+        </fieldset>
+    </div>
+
+    @if (Model.Tipo == TipoPlanejamentoNutricional.Confinamento)
+    {
+<div id="div_dados_confinamento" class="col-lg-8 mt-3">
+    <fieldset class="form h-100">
+        <legend class="FundoDestaque">Dados Confinamento</legend>
+        <div class="table-responsive">
+            <table id="tabelaConfinamentos" class="table table-sm table-striped">
+                <thead>
+                    <tr>
+                        <th>Ração</th>
+                        <th class="text-right">Dia Início</th>
+                        <th class="text-right">Dia Final</th>
+                        <th class="text-right">IMSPV Esperado</th>
+                        <th class="text-right">GMD Esperado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.PlanejamentoValoresConfinamento)
+                    {
+                        <tr>
+                            <td>@item.Racao?.Nome</td>
+                            <td class="text-right">@item.DiaInicio</td>
+                            <td class="text-right">@item.DiaFim</td>
+                            <td class="text-right">@this.FormataDecimal(item.ImspvEsperado, 3)</td>
+                            <td class="text-right">@this.FormataDecimal(item.GmdEsperado, 3)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </fieldset>
+</div> }
+            else
+            {
+<div id="div_dados_pasto" class="col-lg-12 mt-3">
+    <fieldset class="form h-100">
+        <legend class="FundoDestaque">Dados Pasto</legend>
+        <div class="table-responsive">
+            <table id="tabelaPastos" class="table table-sm table-striped">
+                <thead>
+                    <tr>
+                        <th>Categoria</th>
+                        <th>Suplemento</th>
+                        <th>Fase</th>
+                        <th class="text-right">IMSPV Esperado</th>
+                        <th class="text-right">GMD Esperado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.PlanejamentoValoresPasto)
+                    {
+                        <tr>
+                            <td>@item.Categoria?.Nome</td>
+                            <td>@item.SuplementoMineral?.Nome</td>
+                            <td>@item.FaseDoAno?.Nome</td>
+                            <td class="text-right">@this.FormataDecimal(item.ImspvEsperado, 3)</td>
+                            <td class="text-right">@this.FormataDecimal(item.GmdEsperado, 3)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </fieldset>
+</div>}
+
+
+</div>
+<div class="text-center mt-3">
+    @if (!AppUser.EhAdmin())
+    {
+<a autofocus asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning"><i class="fa fa-edit"></i>&nbsp;Editar</a>}
+    <a asp-action="Index" class="btn btn-info"><i class="fa fa-times"></i>&nbsp;Voltar</a>
+</div>
+

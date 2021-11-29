@@ -1,0 +1,101 @@
+﻿@model ClienteViewModel;
+@using PlataformaWeb.WebApp.Extensions
+
+@{ ViewData["Title"] = "Editando: " + Model.Nome; }
+
+<form id="form" asp-action="Edit" enctype="multipart/form-data" novalidate>
+    <div class="row align-items-center justify-content-center">
+        <div class="col-12">
+            <vc:summary></vc:summary>
+        </div>
+        <div class="col-lg-7">
+            <fieldset class="form h-100">
+                <legend class="FundoDestaque">Dados Pessoais</legend>
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                        <label asp-for="Nome" class="control-label"></label>
+                        <input autofocus asp-for="Nome" class="form-control" required />
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label asp-for="Email" class="control-label"></label>
+                        <input asp-for="Email" class="form-control" required type="email" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                        <label asp-for="Usuario" class="control-label"></label>
+                        <input asp-for="Usuario" class="form-control" required />
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label asp-for="Telefone" class="control-label"></label>
+                        <input asp-for="Telefone" class="form-control telefone" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                        <label asp-for="Senha" class=" control-label"></label>
+                        <input asp-for="Senha" class="form-control" type="password" />
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label asp-for="ConfirmaSenha" class="control-label"></label>
+                        <input asp-for="ConfirmaSenha" class="form-control" type="password" />
+                    </div>
+                </div>                
+            </fieldset>
+        </div>
+        <div class="col-lg-5">
+            <fieldset class="form">
+                <legend class="FundoDestaque">Dados da Propriedade</legend>
+                <div class="form-row">
+                    <div class="form-group col-lg-12">
+                        <label asp-for="NomePropriedade" class="control-label"></label>
+                        <input asp-for="NomePropriedade" class="form-control" required />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-lg-6">
+                        <label asp-for="CpfCnpj" class="control-label"></label>
+                        <input asp-for="CpfCnpj" class="form-control cnpjCpf" required />
+                    </div>
+                    <div class="form-group col-lg-6">
+                        <label asp-for="DataValidadeLicenca" class="control-label"></label>
+                        <input asp-for="DataValidadeLicenca" asp-format="{0:dd/MM/yyyy}" type="text" class="form-control data" required />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-lg-6">
+                        <label asp-for="Cidade" class="control-label"></label>
+                        <input asp-for="Cidade" class="form-control" required />
+                    </div>
+                    <div class="form-group col-lg-6">
+                        <label asp-for="Uf" class="control-label"></label>
+                        <select class="form-control LetraFormulario" asp-for="Uf" asp-items="this.ObterSelectEstados()"></select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-lg-6">
+                        <label asp-for="QtdeAnimais" class="control-label"></label>
+                        <input asp-for="QtdeAnimais" class="form-control inteiro" required />
+                    </div>
+                    <div class="form-group col-lg-6">
+                        <label asp-for="AreaHectare" class="control-label"></label>
+                        <input asp-for="AreaHectare" class="form-control decimal" required />
+                    </div>
+                </div>
+            </fieldset>
+        </div>
+    </div>
+    <div class="text-center mt-3">
+        <button type="submit" class="btn btn-success"><i class="fa fa-save"></i>&nbsp;Salvar</button>
+        <a asp-action="Index" class="btn btn-info"><i class="fa fa-times"></i>&nbsp;Voltar</a>
+    </div>
+</form>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        $(document).ready(function () {
+            $('#form').SubmitForm();
+        });
+    </script>
+}

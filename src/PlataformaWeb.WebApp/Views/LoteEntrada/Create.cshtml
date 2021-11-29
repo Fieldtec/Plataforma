@@ -1,0 +1,326 @@
+﻿@model LoteAnimalViewModel;
+@using PlataformaWeb.WebApp.Extensions
+
+@{ ViewData["Title"] = "Cadastrar Novo Lote"; }
+
+<form id="form" enctype="multipart/form-data" novalidate>
+    <div class="row align-items-center justify-content-center">
+        <div class="col-xl-7 col-lg-10">
+            <vc:summary></vc:summary>
+        </div>
+        <div class="col-xl-7 col-lg-10">
+            <fieldset class="form h-100">
+                <legend class="FundoDestaque">Dados do Lote</legend>
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label asp-for="Local" class=" control-label"></label>
+                        <select id="Local" class="form-control LetraFormulario" required></select>
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="Planejamento" class=" control-label"></label>
+                        <select id="Planejamento" class="form-control LetraFormulario" required disabled></select>
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="TipoEntrada" class=" control-label"></label>
+                        <select id="TipoEntrada" name="tipoEntrada" class="form-control numerico" required asp-items="this.ObterSelectTipoEntrada()"></select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label asp-for="DataEntrada" class=" control-label"></label>
+                        <input id="DataEntrada" name="dataEntrada" required type="text" class="form-control data" />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="ValorCompra" class=" control-label"></label>
+                        <input id="ValorCompra" name="valorCompra" required class="form-control money" disabled />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="ProdutorParceiro" class=" control-label"></label>
+                        <select id="ProdutorParceiro" required class="form-control LetraFormulario" disabled></select>
+                    </div>               
+                    <div class="form-group col-md-4">
+                        <label asp-for="Raca" class=" control-label"></label>
+                        <select id="Raca" class="form-control LetraFormulario" required></select>
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="Categoria" class=" control-label"></label>
+                        <select id="Categoria" class="form-control LetraFormulario" required></select>
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="PesoEntrada" class=" control-label"></label>
+                        <input id="PesoEntrada" name="pesoEntrada" required class="form-control decimal" />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="IdadeEntrada" class=" control-label"></label>
+                        <input id="IdadeEntrada" name="idadeEntrada" required class="form-control inteiro" />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="QuantidadeAnimais" class=" control-label"></label>
+                        <input id="QuantidadeAnimais" name="quantidadeAnimais" required class="form-control inteiro" />
+                    </div>
+                </div>
+            </fieldset>
+        </div>
+    </div>
+    <div class="text-center mt-3">
+        <button id="btn_salvar_lote" type="button" class="btn btn-success"><i class="fa fa-save"></i>&nbsp;Salvar</button>
+        <a asp-action="Index" class="btn btn-info"><i class="fa fa-times"></i>&nbsp;Voltar</a>
+    </div>
+</form>
+
+@section Scripts {
+    <script src="~/lib/selectize.js/js/standalone/selectize.min.js"></script>
+    <link href="~/lib/selectize.js/css/selectize.bootstrap3.min.css" rel="stylesheet" />
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+<script>
+        var $Categoria, $Raca, $Local, $Planejamento, $ProdutorParceiro = null;
+        var currentLocal, currentCategoria, currenteRaca, currentPlanejamento, currentProdutoParceiro = null;
+        $(document).ready(function () {
+
+            var categorias = @Html.Raw(Json.Serialize(ViewBag.categorias));
+            var locais = @Html.Raw(Json.Serialize(ViewBag.locais));
+            var racas = @Html.Raw(Json.Serialize(ViewBag.racas));
+            var produtores =@Html.Raw(Json.Serialize(ViewBag.produtores));
+            var planejamentos = [];
+
+            //$('#form').SubmitForm();
+
+            $(document).on('click', '#btn_salvar_lote', function () {
+                var isValid = $('#form').ValidForm();
+                if (isValid) {
+                    salvarDadosLote();
+                }
+            });
+
+            $(document).on('change', '#TipoEntrada', function () {
+                var tipo = $(this).val();
+                if (tipo == 1) { //compra
+                    $('#ValorCompra').prop('disabled', false);
+                    $('#ValorCompra').parents('.form-group').show();
+                    $ProdutorParceiro.parents(".form-group").show();
+                    $ProdutorParceiro[0].selectize.enable();
+                    //$ProdutorParceiro[0].selectize.setValue(null);
+                    //$ProdutorParceiro[0].selectize.clearOptions();
+                    //$ProdutorParceiro[0].selectize.refreshOptions();
+                } else {
+                    $ProdutorParceiro[0].selectize.disable();
+                    $ProdutorParceiro[0].selectize.setValue(null);
+                    //$ProdutorParceiro[0].selectize.clearOptions();
+                    //$ProdutorParceiro[0].selectize.refreshOptions();
+                    $('#ValorCompra').prop('disabled', true);
+                    $('#ValorCompra').val('');
+                    $('#ValorCompra').parents('.form-group').hide();
+                    $ProdutorParceiro.parents(".form-group").hide();
+                }
+            });
+
+            $Categoria = criarSelectizeObjeto('#Categoria', 'buscar-categoria', {
+                options: categorias,
+                onChange: function (value) {
+                    currentCategoria = this.options[value] || null;
+                },
+                render: {
+                    option: function (item, escape) {
+                        return `<div class="selectize-div">
+                                <span class="selectize-titulo">${item.nome}</span>
+                                <span class="selectize-subtitulo">Idade Mínima: ${item.idadeMinima} - Idade Máxima: ${item.idadeMaxima}</span>
+                            </div>`;
+                    }
+                }
+            }, categorias);
+
+            $ProdutorParceiro = criarSelectizeObjeto('#ProdutorParceiro', 'buscar-produtor-parceiro', {
+                options: produtores,
+                onChange: function (value) {
+                    currentProdutoParceiro = this.options[value] || null;
+                },
+                render: {
+                    option: function (item, escape) {
+                        return `<div class="selectize-div">
+                                <span class="selectize-titulo">${item.nome}</span>
+                                <span class="selectize-subtitulo">Propriedade Parceira: ${item.nomePropriedadeParceira}</span>
+                            </div>`;
+                    }
+                }
+            }, produtores);
+
+            $Planejamento = criarSelectizeObjeto('#Planejamento', 'buscar-planejamento', {
+                onChange: function (value) {
+                    currentPlanejamento = this.options[value] || null;
+                },
+                render: {
+                    option: function (item, escape) {
+
+                        var tipo = item.tipo && !isNaN(item.tipo)
+                            ? `<span class="selectize-subtitulo">Tipo: ${obterNomePastoCurralPorCodigo(item.tipo)}</span>`
+                            : ``;
+
+
+                        return `<div class="selectize-div">
+                                <span class="selectize-titulo">${item.nome}</span>
+                                ${tipo}
+                            </div>`;
+                    }
+                },
+                load: function (query, callback) {
+                    if (query.length < 1) {
+                        callback(planejamentos);
+                    } else {
+                        var listFiltered = planejamentos.filter(x => x.nome.toUpperCase().includes(query.toUpperCase()));
+                        callback(listFiltered);
+                    }
+                    //if (query.length < 1 || !currentLocal) return callback();
+                    //$.ajax({
+                    //    url: raizAplicacao + 'buscar-planejamento?query=' + encodeURIComponent(query) + '&tipo=' + currentLocal.tipo,
+                    //    type: 'GET',
+                    //    error: function (error) {
+                    //        callback();
+                    //    },
+                    //    success: function (res) {
+                    //        callback(res.list);
+                    //    }
+                    //});
+                }
+            });
+
+            $Local = criarSelectizeObjeto('#Local', 'buscar-curral-pasto', {
+                options: locais,
+                onChange: function (value) {
+                    currentLocal = this.options[value] || null;
+                    if (currentLocal) {
+                        buscarLocalAtivo();
+                        return;
+                    }
+                    $Planejamento[0].selectize.disable();
+                    $Planejamento[0].selectize.setValue(null);
+                    $Planejamento[0].selectize.clearOptions();
+                    $Planejamento[0].selectize.refreshOptions();
+                },
+                render: {
+                    option: function (item, escape) {
+
+                        var tipo = item.tipo && !isNaN(item.tipo)
+                            ? `<span class="selectize-subtitulo">Tipo: ${obterNomePastoCurralPorCodigo(item.tipo)}</span>`
+                            : ``;
+
+
+                        return `<div class="selectize-div">
+                                <span class="selectize-titulo">${item.nome}</span>
+                                ${tipo}
+                            </div>`;
+                    }
+                }
+            }, locais);
+
+            $Raca = criarSelectizeObjeto('#Raca', 'buscar-raca', {
+                options: racas,
+                onChange: function (value) {
+                    currenteRaca = this.options[value] || null;
+                },
+                render: {
+                    option: function (item, escape) {
+                        return `<div class="selectize-div">
+                                <span class="selectize-titulo">${item.nome}</span>
+                            </div>`;
+                    }
+                }
+            }, racas);
+
+            $Local[0].selectize.focus();
+
+            function buscarLocalAtivo() {
+
+                if (!currentLocal) return;
+
+                $.getUrlAjax(null, 'buscar-lote-ativo-local?idLocal=' + currentLocal.id, true, function (res) {
+                    if (res.planejamentoAtivo) {
+                        MostraAlerta(`Local já possui um lote ativo. Os dados cadastrados serão atualizados no lote do dia ${FormatarData(res.lote[0].dataEntrada)} !`,
+                            "Atenção", TipoAlerta.Warning, $(this), false, false, function () {
+
+                                buscarPlanejamentos(res.planejamentoAtivo);
+                            });
+                    } else {
+                        buscarPlanejamentos();
+                    }
+                });
+            }
+
+            function buscarPlanejamentos(planejamentoAtivo) {
+                if (!currentLocal) return;
+
+                $.getUrlAjax(null, 'buscar-planejamento?tipo=' + currentLocal.tipo, true, function (res) {
+                    planejamentos = res.list;
+
+                    $Planejamento[0].selectize.setValue(null);
+                    $Planejamento[0].selectize.clearOptions();
+                    $Planejamento[0].selectize.refreshOptions();
+                    $Planejamento[0].selectize.addOption(res.list);
+
+                    if (planejamentoAtivo) {
+                        $Planejamento[0].selectize.setValue(planejamentoAtivo.id);
+                    }
+                    $Planejamento[0].selectize.enable();
+                    $Planejamento[0].selectize.focus();
+                });
+
+
+            }
+
+            function salvarDadosLote() {
+
+                var modelLote = Object.assign($('#form').GetJsonData(), {
+                    planejamento: currentPlanejamento,
+                    local: currentLocal,
+                    raca: currenteRaca,
+                    categoria: currentCategoria,
+                    produtorParceiro: currentProdutoParceiro
+                });
+
+                debugger
+
+                var fnSalvar = function () {
+                    $.postUrlAjax(modelLote, 'novo-lote-entrada', true, function (res) {
+                        MostraAlerta("Lote de Entrada Cadastrado com sucesso!", "Operação realizada", TipoAlerta.Sucesso, $(this), false, false, function () {
+                            $.load();
+                            window.location.href = raizAplicacao + "lotes-de-entrada";
+                        });
+                    });
+                }
+
+                if (!validarPlanejamento(modelLote)) return;
+
+                if (!validarCapacidadeLocal(modelLote)) {
+                    MostraAlertaConfirma("Total de animais maior que a capacidade do local destino deseja prosseguir?", "Atenção", TipoAlerta.Warning, $(this),
+                        function () {
+                            fnSalvar();
+                        });
+
+                    return;
+                }
+
+                fnSalvar();
+            }
+
+            function validarPlanejamento(modelLote) {
+                if (modelLote.local.tipo !== modelLote.planejamento.tipo) {
+                    MostraAlerta(`Planejamento(Tipo = ${obterNomePastoCurralPorCodigo(modelLote.planejamento.tipo)}) e Local(Tipo = ${obterNomePastoCurralPorCodigo(modelLote.local.tipo)}) devem ser do mesmo tipo`, "Atenção", TipoAlerta.Warning, $(this), false, false);
+                    return false;
+                }
+
+                return true;
+            }
+
+            function validarCapacidadeLocal(modelLote) {
+                var capacidade = modelLote.local.capacidade || 0,
+                    lotacao = modelLote.local.lotacao || 0;
+
+                if (lotacao + modelLote.quantidadeAnimais > capacidade) {
+                    return false;
+                }
+
+                return true;
+            }
+
+        });
+</script>
+}

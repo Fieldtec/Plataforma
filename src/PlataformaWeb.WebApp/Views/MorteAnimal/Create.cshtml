@@ -1,0 +1,233 @@
+﻿@model MorteAnimalViewModel;
+@using PlataformaWeb.Business.DTO;
+@using PlataformaWeb.WebApp.Extensions;
+
+@{
+    ViewData["Title"] = "Novo Lançamento de Morte";
+    List<CausaMorteDTO> causas = ViewBag.causas;
+    List<SelectListItem> listItem = new List<SelectListItem>();
+    listItem.Add(new SelectListItem("SELECIONE", "", true));
+    listItem.AddRange(causas.Select(x => new SelectListItem(x.Nome, x.Id.ToString(), false)));
+}
+
+<form id="form" enctype="multipart/form-data" novalidate>
+    <div class="row align-items-center justify-content-center">
+        <div class="col-xl-7 col-lg-10">
+            <vc:summary></vc:summary>
+        </div>
+        <div class="col-xl-7 col-lg-10">
+            <fieldset class="form h-100">
+                <legend class="FundoDestaque">Dados do Lançamento</legend>
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label for="DataMorte" class="control-label">Data da Morte</label>
+                        <input id="DataMorte" name="dataMorte" required type="text" class="form-control data" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label asp-for="Local" class=" control-label">Local de Origem</label>
+                        <select id="Local" name="local" class="form-control LetraFormulario" required></select>
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="QuantidadeAnimaisLoteOrigem" class=" control-label">Total de Animais</label>
+                        <input id="QuantidadeAnimaisLoteOrigem" disabled class="form-control" />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="DataEntrada" class=" control-label">Data Entrada</label>
+                        <input id="DataEntrada" disabled class="form-control" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label asp-for="QuantidadeAnimais" class=" control-label">Qtd. Animais</label>
+                        <input asp-for="QuantidadeAnimais" name="quantidadeAnimais" type="text" class="form-control LetraFormulario inteiro" required />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="CausaMorte" class="LetraFormulario control-label">Causa da Morte&nbsp;<i data-toggle="tooltip" data-placement="top" title="Selecione a causa da morte ou clique no botão para cadastrar um novo" class="far fa-question-circle text-info helper"></i></label>
+                        <div class="input-group">
+                            <select asp-for="CausaMorte" name="causaMorte" asp-items="@listItem" class="form-control LetraFormulario numerico" required></select>
+                            <div class="input-group-append">
+                                <button id="btn_abrir_modal_causa" class="btn btn-sm btn-primary no_focus" type="button"><i class="fa fa-plus"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </fieldset>
+        </div>
+    </div>
+    <div class="text-center mt-3">
+        <button id="btn_salvar" type="button" class="btn btn-success"><i class="fa fa-save"></i>&nbsp;Salvar</button>
+        <a asp-action="Index" class="btn btn-info"><i class="fa fa-times"></i>&nbsp;Voltar</a>
+    </div>
+</form>
+
+@section Scripts {
+    <script src="~/lib/selectize.js/js/standalone/selectize.min.js"></script>
+    <link href="~/lib/selectize.js/css/selectize.bootstrap3.min.css" rel="stylesheet" />
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+<script>
+        var listCausas = @Html.Raw(Json.Serialize(causas));
+        var $Local;
+        var currentLocal, currentLote;
+
+        var locais = @Html.Raw(Json.Serialize(ViewBag.locais));
+
+        $(document).ready(function () {
+
+            $(document).on('click', '#btn_salvar', function () {
+                var isValid = $('#form').ValidForm();
+                if (isValid) {
+                    salvarDados();
+                }
+            });
+
+            $(document).on('click', '#btn_abrir_modal_causa', function () {
+                initModalCausaMorte(callbackCausaMorteCadastrada);
+            });
+
+            $Local = criarSelectizeObjeto('#Local', 'buscar-curral-pasto', {
+                options: locais,
+                onChange: function (value) {
+                    currentLocal = this.options[value] || null;
+                    if (currentLocal) {
+                        buscarLocalAtivo(currentLocal, callbackLocalOrigem);
+                        return;
+                    }
+
+                    $('#QuantidadeAnimaisLoteOrigem, #DataEntrada').val('');
+
+                },
+                render: {
+                    option: function (item, escape) {
+                        return `<div class="selectize-div">
+                                    <span class="selectize-titulo">${item.nome}</span>
+                                    <span class="selectize-subtitulo">Lotação: ${item.lotacao}</span>
+                                </div>`;
+                    }
+                },                
+            }, locais);
+
+            setTimeout(function () {
+                $('#DataMorte').focus();
+            }, 100);
+
+            function limparLocal() {
+                $Local[0].selectize.setValue(null);
+                //$Local[0].selectize.clearOptions();
+                //$Local[0].selectize.refreshOptions();
+                currentLocal = null;
+                currentLote = null;
+                $('#QuantidadeAnimaisLoteOrigem, #DataEntrada').val('');
+            }
+
+            function callbackLocalOrigem(res) {
+                if (!res.planejamentoAtivo) {
+
+                    limparLocal();
+
+                    MostraAlerta(`Local não possui Lote Ativo. Escolha outro Local!`,
+                        "Atenção", TipoAlerta.Warning, $(this), false, false, function () {
+
+                        $Local[0].selectize.focus();
+                    });
+
+                    return;
+                }
+
+                $('#QuantidadeAnimaisLoteOrigem').val(res.lote[0].quantidadeAnimais);
+                $('#DataEntrada').val(FormatarData(res.lote[0].dataEntrada));
+
+                currentLote = res.lote[0];
+            }
+
+            function buscarLocalAtivo(local, fnCallback) {
+                if (!local) return;
+                $.getUrlAjax(null, 'buscar-lote-ativo-local?idLocal=' + local.id, true, function (res) {
+                    fnCallback(res);
+                });
+            }
+
+            function obterObjetoCausaMorte(idCausa) {
+
+                var causa = null;
+
+                $.each(listCausas, function (i, item) {
+                    if (item.id === idCausa) {
+                        causa = item;
+                        return;
+                    }
+                });
+
+                return causa;
+            }
+
+            function validaLocais(model) {
+
+                if (model.local === null) {
+                    MostraAlerta("Local de Origem precisa ser informado!", "Atenção", TipoAlerta.Warning, $(this), false, false, function () {
+                        $Local[0].selectize.focus();
+                    });
+
+                    return false;
+                }
+
+                return true;
+            }
+
+            function salvarDados() {
+
+                var json = $('#form').GetJsonData();
+
+                delete currentLote.planejamento;
+
+                var model = Object.assign(json, {
+                    local: currentLocal,
+                    loteEntrada: currentLote,
+                    causaMorte: obterObjetoCausaMorte(json.causaMorte),
+                });
+
+                if (!validaLocais(model)) return;
+
+                if (!validarQuantidadeAnimais(model)) return;
+
+                var fnSalvar = function () {
+                    $.postUrlAjax(model, 'novo-registro-morte', true, function (res) {
+                        MostraAlerta("Mortes lançadas com sucesso!", "Operação realizada", TipoAlerta.Sucesso, $(this), false, false, function () {
+                            $.load();
+                            window.location.href = raizAplicacao + "mortes-animais";
+                        });
+                    });
+                }
+
+                fnSalvar();
+            }
+
+            function validarQuantidadeAnimais(modelLote) {
+                var qtdAnimaisOrigem = modelLote.loteEntrada.quantidadeAnimais,
+                    qtdAnimaisMortos = modelLote.quantidadeAnimais;
+
+                if (qtdAnimaisMortos === 0) {
+                    MostraAlerta(`Total de animais mortos precisa ser maior do que 0`, "Atenção", TipoAlerta.Warning, $('#QuantidadeAnimais'), false, false);
+                    return false;
+                }
+
+                if (qtdAnimaisMortos > qtdAnimaisOrigem) {
+                    MostraAlerta(`Total de animais mortos informado (${modelLote.quantidadeAnimais}) é maior que a Quantidade de Animais do Local de Origem(${modelLote.loteEntrada.quantidadeAnimais})`, "Atenção", TipoAlerta.Warning, $('#QuantidadeAnimais'), false, false);
+                    return false;
+                }
+
+                return true;
+            }
+
+            function callbackCausaMorteCadastrada(data) {
+                listCausas.push(data);
+                $('#CausaMorte').append(`<option value='${data.id}'>${data.nome}</option>`);
+                $('#CausaMorte').val(data.id);
+            }
+
+
+        });
+</script>
+    @{await Html.RenderPartialAsync("_CadastroCausaMorteModal");}
+}

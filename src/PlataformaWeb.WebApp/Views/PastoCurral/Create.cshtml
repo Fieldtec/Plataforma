@@ -1,0 +1,122 @@
+﻿@model PastoCurralViewModel;
+@using PlataformaWeb.WebApp.Extensions
+
+@{ ViewData["Title"] = "Cadastrar Novo Pasto/Curral"; }
+
+<form id="form" asp-action="Create" enctype="multipart/form-data" novalidate>
+    <div class="row align-items-center justify-content-center">
+        <div class="col-xl-7 col-lg-10">
+            <vc:summary></vc:summary>
+        </div>
+        <div class="col-xl-7 col-lg-10">
+            <fieldset class="form h-100">
+                <legend class="FundoDestaque">Dados Pasto/Curral</legend>
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label asp-for="Tipo" class="control-label"></label>
+                        <select autofocus asp-for="Tipo" class="form-control" asp-items="this.ObterSelectTipoPastoCurral()" required></select>
+                    </div>     
+                    <div class="form-group col-md-4">
+                        <label asp-for="Linha" class="control-label"></label>
+                        <input asp-for="Linha" class="form-control" required readonly />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="Numero" class="control-label"></label>
+                        <input asp-for="Numero" class="form-control inteiro" required readonly />
+                    </div>                    
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-lg-12">
+                        <label asp-for="Nome" class="control-label"></label>
+                        <input asp-for="Nome" class="form-control" required readonly />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label asp-for="Capacidade" class=" control-label"></label>
+                        <input asp-for="Capacidade" class="form-control inteiro" required readonly />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="Lotacao" class="control-label"></label>
+                        <input asp-for="Lotacao" class="form-control inteiro" disabled />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="Metragemcocho" class="control-label"></label>
+                        <input asp-for="Metragemcocho" class="form-control decimal" readonly />
+                    </div>
+                    <div class="form-group col-md-4" style="display: none">
+                        <label asp-for="OrdemFornecimento" class="control-label"></label>
+                        <input asp-for="OrdemFornecimento" class="form-control inteiro"/>
+                    </div>
+                </div>
+            </fieldset>
+        </div>
+    </div>
+    <div class="text-center mt-3">
+        <button type="submit" class="btn btn-success"><i class="fa fa-save"></i>&nbsp;Salvar</button>
+        <a asp-action="Index" class="btn btn-info"><i class="fa fa-times"></i>&nbsp;Voltar</a>
+    </div>
+</form>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+<script>
+        var dadosPasto = @Html.Raw(Json.Serialize(Model));
+        $(document).ready(function () {
+            $('#form').SubmitForm();
+
+            $(document).on('change', '#Tipo', function () {
+                var tipo = $(this).val();
+                ativaDesativaNome(tipo, true);
+            });
+
+            $(document).on('change', '#Numero, #Linha', function () {
+                var linha = $('#Linha').val(),
+                    numero = $('#Numero').val(),
+                    tipo = $('#Tipo').val();
+
+                if (tipo == 1) {
+                    if (linha && numero)
+                        $('#Nome').val(linha + "-" + numero);
+                    else 
+                        $('#Nome').val("");
+                }
+            });
+
+            if (dadosPasto !== null) {
+                ativaDesativaNome(dadosPasto.tipo, false);
+            }
+
+            function ativaDesativaNome(tipo, zeraCampos) {
+                
+                if (tipo == 1) { //curral
+                    $('#form').find('input, select:not(#Tipo), textarea').prop("readonly", false);
+                    $('#Linha, #Numero').prop('disabled', false);
+                    $('#Linha, #Numero').parents(".form-group").show();
+                    $('#Nome').prop("readonly", true);
+                    if (zeraCampos) $('#Numero').change();
+
+                    $('#OrdemFornecimento').parents('.form-group').show();
+
+                } else if (tipo == 2) {
+                    $('#form').find('input, select:not(#Tipo), textarea').prop("readonly", false);
+                    $('#Linha, #Numero').prop('disabled', true);
+                    $('#Linha, #Numero').parents(".form-group").hide();
+
+                    if (zeraCampos) $('#Linha, #Numero').val("");
+
+                    $('#OrdemFornecimento').parents('.form-group').hide();
+
+                    $('#Nome').prop("readonly", false);
+                } else {
+                    $('#form').find('input:not([type=hidden]), select:not(#Tipo), textarea').prop("readonly", true);
+                    $('#form').find('input:not([type=hidden]), select:not(#Tipo), textarea').val("");
+                    $('#OrdemFornecimento').parents('.form-group').hide();
+                }
+
+            }
+
+        });
+
+</script>
+}

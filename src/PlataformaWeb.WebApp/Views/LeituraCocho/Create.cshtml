@@ -1,0 +1,252 @@
+﻿@using PlataformaWeb.WebApp.Extensions
+
+@{ ViewData["Title"] = "Nova Leitura de Cocho"; }
+
+<div class="row align-items-center justify-content-center">
+    <div class="col-lg-10">
+        <vc:summary></vc:summary>
+    </div>
+    <div class="col-lg-10">
+        <fieldset class="form">
+            <legend class="FundoDestaque">Leitura de Cocho</legend>
+            <form id="formBuscar" novalidate>
+                <div class="form-row">
+                    <div class="form-group col-3">
+                        <label class="control-label">Data da Leitura</label>
+                        <input id="DataLeitura" class="form-control LetraFormulario data" required value="@DateTime.Now.ToShortDateString()" name="dataLeitura" />
+                    </div>
+                    <div class="form-group col-3">
+                        <button type="button" style="margin-top: 27px" id="btn_buscar" class="btn btn-sm btn-info"><i class="fa fa-search"></i></button>
+                    </div>
+                </div>
+            </form>
+            <form id="formNota" novalidate>
+                <div class="mt-4 table-responsive table-fixed">
+                    <table id="tableLeituras" class="table table-hover table-striped">
+                        <thead></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </form>
+        </fieldset>
+    </div>
+</div>
+<div class="text-center mt-3">
+    <button id="btn_salvar" type="submit" class="btn btn-success"><i class="fa fa-save"></i>&nbsp;Salvar</button>
+    <a asp-action="Index" class="btn btn-info"><i class="fa fa-times"></i>&nbsp;Voltar</a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        $(document).ready(function () {
+
+            var dataLeitura = null;
+            var notasLeitura = @Html.Raw(Json.Serialize(ViewBag.notas));
+
+            $(document).on('change', '.selecionar_nota', function () {
+                var strNota = $(this).val(),
+                    ajuste = null;
+
+                if (strNota) {
+                    $.each(notasLeitura, function (i, nota) {
+                        if (nota.nome === strNota) {
+                            ajuste = nota.ajustePorcentagem;
+                            return;
+                        }
+                    });
+                }
+                var $tr = $(this).parents('tr');
+                if (ajuste === null)
+                    $tr.find('td:eq(3)').html(' - ');
+                else {
+                    $tr.find('td:eq(3)').html(ajuste + ' %');
+                }
+            });
+
+
+            $(document).on('click', '#btn_buscar', function () {
+                var isValid = $('#formBuscar').ValidForm();
+                if (isValid) {
+                    buscarCurrais();
+                }
+            });
+
+            $(document).on('click', '#btn_salvar', function () {
+                var isValid = $('#formNota').ValidForm();
+                if (isValid) {
+                    salvarLeituras();
+                }
+            });
+
+            $('#tableLeituras').grid({
+                "bSort": false,
+                columns: [
+                    {
+                        title: "Data Leitura", className: 'text-center',
+                        data: function (row, type, val, meta) {
+                            if (type === "display") {
+                                return row.dataLeitura === null
+                                    ? $('#DataLeitura').val()
+                                    : FormatarData(row.dataLeitura);
+                            }
+                            return row;
+                        }
+                    },
+                    { title: "Curral", data: "curral" },
+                    { title: "Nota", data: "nota" },
+                    {
+                        title: "Ajuste", className: "text-right",
+                        data: function (row, type) {
+                            if (type === "display") {
+                                return row.ajuste === null ? ' - ' : row.ajuste + " %";
+                            }
+                            return row;
+                        }
+                    },
+                    {
+                        title: "Realizado MN", className: "text-right",
+                        data: function (row, type) {
+                            if (type === "display") {
+                                return Math.ceil(row.realizadoMateriaNatural)
+                            }
+                            return row;
+                        }
+                    },
+                    {
+                        title: "Realizado MS", className: "text-right",
+                        data: function (row, type) {
+                            if (type === "display") {
+                                return Math.ceil(row.realizadoMateriaSeca)
+                            }
+                            return row;
+                        }
+                    }
+                ],
+                afterFetch: function (rows, data) {
+                    var todasLeiturasBloqueadas = true;
+                    $.each(rows, function (i, item) {
+                        if (!data[i].temLancamentoInsumo) {
+                            var $row = $(item),
+                                $liNota = $row.find('td:eq(2)');
+
+                            $liNota.html(obterSelect(data[i].nota));
+
+                            todasLeiturasBloqueadas = false;
+                        }
+                    });
+
+                    if (todasLeiturasBloqueadas) {
+                        $('#btn_salvar').hide();
+                    } else {
+                        $('#btn_salvar').show();
+                    }
+
+                }
+            });
+
+            function salvarLeituras() {
+                var jsonData = obterJsonData();
+
+                if (!jsonData) return;
+
+                MostraAlertaConfirma("Confirma a inclusão das leituras?", 'Confirma?', TipoAlerta.Warning, $(this), function () {
+                    $.postUrlAjax(jsonData, 'nova-leitura-de-cocho', true, function (res) {
+                        MostraAlerta("Leituras Gravadas com Sucesso.", "Sucesso", TipoAlerta.Sucesso, $(this), true, true, function () {
+                            window.location.href = raizAplicacao + 'leituras-de-cocho';
+                        });
+                    });
+                });
+
+            }
+
+            function obterJsonData() {
+                var list = $('#tableLeituras').grid('getData'),
+                    index = -1,
+                    teveLeitura = false,
+                    msg = null;
+
+                $.each(list, function (i, item) {
+
+                    var $tr = $(`#tableLeituras tbody tr:eq(${i})`),
+                        $select = $tr.find('select');
+
+                    if (!$select.length) return;
+
+                    var nota = $select.getValue();
+
+                    //if (index === -1) {
+                        if (nota) {
+                            var objNota = obterNotaPeloNome(nota);
+                            if (objNota) {
+                                item.ajuste = objNota.ajustePorcentagem;
+                                item.nota = nota;
+                                item.dataLeitura = dataLeitura;
+                                teveLeitura = true;
+                            } else {
+                                item.ajuste = null;
+                                item.nota = null;
+                            }
+                        } else {
+                            item.ajuste = null;
+                            item.nota = null;
+                        }
+
+                        //if (item.ajuste === null) {
+                        //    index = i;
+                        //    msg = `Selecione a Nota para o Curral ${item.curral}`;
+                        //    return;
+                        //}
+                    //}
+                });
+
+                if (!teveLeitura) {
+                    MostraAlerta("É necessário efetuar a leitura do cocho de pelo menos um Local", "Atenção", TipoAlerta.Warning, $(this), false, false, function () {
+                        $(`#tableLeituras tbody tr td select`).eq(0).focus();
+                    });
+                    return null;
+                }
+
+                return list;
+            }
+
+            function obterNotaPeloNome(nomeNota) {
+                var nota = null;
+
+                $.each(notasLeitura, function (i, item) {
+                    if (item.nome === nomeNota) {
+                        nota = Object.assign({}, item);
+                        return;
+                    }
+                });
+
+                return nota;
+            }
+
+            function obterSelect(nota) {
+                var html = [];
+                html.push("<div class='form-group'>")
+                html.push("<select class='form-control LetraFormulario selecionar_nota' name='nota'>")
+                html.push("<option value=''>SELECIONE</option>");
+                $.each(notasLeitura, function (i, item) {
+                    var selected = item.nome === nota ? 'selected' : '';
+                    html.push(`<option value='${item.nome}' ${selected}>${item.nome}</option>`);
+                });
+                html.push("</select>");
+                html.push("<div/>")
+                return html.join("");
+            }
+
+            buscarCurrais();
+
+            function buscarCurrais() {
+                dataLeitura = $('#DataLeitura').getValue();
+                $.postUrlAjax(dataLeitura, 'filtro-leitura-cocho', true, function (res) {
+                    console.log(res);
+                    $('#tableLeituras').grid('setData', res);
+                });
+            }
+
+        });
+    </script>
+}

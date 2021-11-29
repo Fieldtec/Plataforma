@@ -1,0 +1,426 @@
+﻿@model MovimentacaoAnimalViewModel;
+@using PlataformaWeb.Business.DTO;
+@using PlataformaWeb.WebApp.Extensions;
+
+@{
+    ViewData["Title"] = "Nova Movimentação";
+    List<MotivoMovimentacaoDTO> motivos = ViewBag.motivos;
+    List<SelectListItem> listItem = new List<SelectListItem>();
+    listItem.Add(new SelectListItem("SELECIONE", "", true));
+    listItem.AddRange(motivos.Select(x => new SelectListItem(x.Nome, x.Id.ToString(), false)));
+}
+
+<form id="form" enctype="multipart/form-data" novalidate>
+    <div class="row align-items-center justify-content-center">
+        <div class="col-xl-7 col-lg-10">
+            <vc:summary></vc:summary>
+        </div>
+        <div class="col-xl-7 col-lg-10">
+            <fieldset class="form h-100">
+                <legend class="FundoDestaque">Dados da Movimentação</legend>
+                <div class="form-row">
+                    @*<div class="form-group col-md-4">
+                            <label for="TipoMovimentacao" class="control-label">Tipo da Movimentação</label>
+                            <select autofocus id="TipoMovimentacao" class="form-control LetraFormulario numerico" asp-items="this.ObterSelectTipoMovimentacaoEntrePastos()" required></select>
+                        </div>*@
+                    <div class="form-group col-md-4">
+                        <label for="DataMovimentacao" class="control-label">Data da Movimentação</label>
+                        <input id="DataMovimentacao" name="dataMovimentacao" required type="text" class="form-control data" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label asp-for="LocalOrigem" class=" control-label">Local de Origem</label>
+                        <select id="LocalOrigem" name="localOrigem" class="form-control LetraFormulario" required></select>
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="QuantidadeAnimaisLoteOrigem" class=" control-label">Total de Animais</label>
+                        <input id="QuantidadeAnimaisLoteOrigem" disabled class="form-control" />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="DataEntrada" class=" control-label">Data Entrada</label>
+                        <input id="DataEntrada" disabled class="form-control" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label asp-for="LocalDestino" class=" control-label">Local de Destino</label>
+                        <select id="LocalDestino" name="localDestino" class="form-control LetraFormulario" required></select>
+                    </div>
+                    <div class="form-group col-md-4" style="display: none">
+                        <label for="Planejamento" class=" control-label">Planejamento</label>
+                        <select id="Planejamento" class="form-control LetraFormulario" required></select>
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="QuantidadeAnimais" class=" control-label">Qtd. Animais</label>
+                        <input asp-for="QuantidadeAnimais" name="quantidadeAnimais" type="text" class="form-control LetraFormulario inteiro" required />
+                    </div>
+
+                    <div class="form-group col-md-4">
+                        <label for="Motivo" class="LetraFormulario control-label">Motivo&nbsp;<i data-toggle="tooltip" data-placement="top" title="Selecione o motivo da movimentação ou clique no botão para cadastrar um novo" class="far fa-question-circle text-info helper"></i></label>
+                        <div class="input-group">
+                            <select asp-for="Motivo" name="motivo" asp-items="@listItem" class="form-control LetraFormulario numerico" required></select>
+                            <div class="input-group-append">
+                                <button id="btn_abrir_modal_motivo" class="btn btn-sm btn-primary no_focus" type="button"><i class="fa fa-plus"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </fieldset>
+        </div>
+    </div>
+    <div class="text-center mt-3">
+        <button id="btn_salvar" type="button" class="btn btn-success"><i class="fa fa-save"></i>&nbsp;Salvar</button>
+        <a asp-action="Index" class="btn btn-info"><i class="fa fa-times"></i>&nbsp;Voltar</a>
+    </div>
+</form>
+
+@section Scripts {
+    <script src="~/lib/selectize.js/js/standalone/selectize.min.js"></script>
+    <link href="~/lib/selectize.js/css/selectize.bootstrap3.min.css" rel="stylesheet" />
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+<script>
+        var listMotivos = @Html.Raw(Json.Serialize(motivos));
+        var locais = @Html.Raw(Json.Serialize(ViewBag.locais));
+        var locaisOrigem = locais.filter(x => x.lotacao > 0);
+        var planejamentos = [];
+        var $LocalOrigem, $LocalDestino, $Planejamento;
+        var currentLocalOrigem, currentLocalDestino, currentLote, currentLoteDestino, currentPlanejamento, currentTipoMovimentacao = null;
+        $(document).ready(function () {
+
+            $(document).on('click', '#btn_salvar', function () {
+                var isValid = $('#form').ValidForm();
+                if (isValid) {
+                    salvarDados();
+                }
+            });
+
+            $(document).on('change', '#TipoMovimentacao', function () {
+                currentTipoMovimentacao = $(this).getValue();
+                limparLocais();
+            });
+
+            $(document).on('click', '#btn_abrir_modal_motivo', function () {
+                initModalMotivoMovimentacao(callbackMotivoCadastrado);
+            });
+
+            $LocalOrigem = criarSelectizeObjeto('#LocalOrigem', 'buscar-curral-pasto', {
+                options: locaisOrigem,
+                onChange: function (value) {
+                    currentLocalOrigem = this.options[value] || null;
+                    if (currentLocalOrigem) {
+                        if (currentLocalDestino && currentLocalOrigem.id === currentLocalDestino.id) {
+                            currentLocalOrigem = null;
+                            $LocalOrigem[0].selectize.setValue(null);
+                            MostraAlerta("Local Destino e Origem não podem ser iguais.", "Atenção", TipoAlerta.Warning, $(this), false, false, function () {
+                                $LocalOrigem[0].selectize.focus();
+                            });
+                            return;
+                        }
+
+                        buscarLocalAtivo(currentLocalOrigem, callbackLocalOrigem);
+                        return;
+                    }
+
+                    $('#QuantidadeAnimaisLoteOrigem, #DataEntrada').val('');
+
+                },
+                render: {
+                    option: function (item, escape) {
+                        return `<div class="selectize-div">
+                                    <span class="selectize-titulo">${item.nome}</span>
+                                    <span class="selectize-subtitulo">Capacidade: ${item.capacidade} - Lotação: ${item.lotacao}</span>
+                                </div>`;
+                    }
+                },
+                load: function (query, callback) {
+                    if (query.length < 1)
+                        callback(locaisOrigem);
+                    else 
+                        callback(locaisOrigem.filter(x => x.nome.toUpperCase.includes(query.toUpperCase())));
+                }
+            });
+
+            $LocalDestino = criarSelectizeObjeto('#LocalDestino', 'buscar-curral-pasto', {
+                options: locais,
+                onChange: function (value) {
+                    currentLocalDestino = this.options[value] || null;
+                    if (currentLocalDestino) {
+
+                        if (currentLocalOrigem && currentLocalOrigem.id === currentLocalDestino.id) {
+                            currentLocalDestino = null;
+                            $LocalDestino[0].selectize.setValue(null);
+                            MostraAlerta("Local Destino e Origem não podem ser iguais.", "Atenção", TipoAlerta.Warning, $(this), false, false, function () {
+                                $LocalDestino[0].selectize.focus();
+                            });
+                            return;
+                        }
+
+                        buscarLocalAtivo(currentLocalDestino, callbackLocalDestino);
+                    } else {
+                        limparPlanejamento();
+                    }
+                },
+                render: {
+                    option: function (item, escape) {
+                        return `<div class="selectize-div">
+                                    <span class="selectize-titulo">${item.nome}</span>
+                                    <span class="selectize-subtitulo">Capacidade: ${item.capacidade} - Lotação: ${item.lotacao}</span>
+                                </div>`;
+                    }
+                },
+                load: function (query, callback) {
+                    if (query.length < 1)
+                        callback(locais);
+                    else
+                        callback(locais.filter(x => x.nome.toUpperCase.includes(query.toUpperCase())));
+                }
+            });
+
+            $Planejamento = criarSelectizeObjeto('#Planejamento', 'buscar-planejamento', {
+                onChange: function (value) {
+                    currentPlanejamento = this.options[value] || null;
+                },
+                render: {
+                    option: function (item, escape) {
+                        return `<div class="selectize-div">
+                                <span class="selectize-titulo">${item.nome}</span>
+                            </div>`;
+                    }
+                },
+                load: function (query, callback) {
+                    if (query.length < 1 || !currentLocalDestino) return callback();
+                    $.ajax({
+                        url: raizAplicacao + 'buscar-planejamento?query=' + encodeURIComponent(query) + '&tipo=' + currentLocalDestino.tipo,
+                        type: 'GET',
+                        error: function (error) {
+                            callback();
+                        },
+                        success: function (res) {
+                            callback(res.list);
+                        }
+                    });
+                }
+            });
+
+            setTimeout(function () {
+                $('#DataMovimentacao').focus();
+            }, 100);
+
+            function limparPlanejamento() {
+                $Planejamento[0].selectize.setValue(null);
+                $Planejamento[0].selectize.clearOptions();
+                $Planejamento[0].selectize.disable();
+                $Planejamento[0].selectize.refreshOptions();
+                $Planejamento.parents('.form-group').hide();
+                currentPlanejamento = null;
+                planejamentos = [];
+            }
+
+            function limparLocais() {
+                $LocalDestino[0].selectize.setValue(null);
+                $LocalDestino[0].selectize.clearOptions();
+                $LocalDestino[0].selectize.refreshOptions();
+                $LocalOrigem[0].selectize.setValue(null);
+                $LocalOrigem[0].selectize.clearOptions();
+                $LocalOrigem[0].selectize.refreshOptions();
+
+                limparPlanejamento();
+
+                currentLocalOrigem = null;
+                currentLocalDestino = null;
+
+                $('#QuantidadeAnimaisLoteOrigem, #DataEntrada').val('');
+            }
+
+            function callbackLocalDestino(res) {
+                if (!res.planejamentoAtivo) {
+                    MostraAlerta(`Local Destino não possui Lote Ativo. É necessário selecionar o Planejamento!`,
+                        "Atenção", TipoAlerta.Warning, $(this), false, false, function () {
+                            buscarPlanejamentos();
+                        });
+                } else {
+                    limparPlanejamento();
+                }
+
+                currentPlanejamento = res.planejamentoAtivo;
+                currentLoteDestino = res.lote[0];
+            }
+
+            function buscarPlanejamentos() {
+
+                debugger
+
+                if (!currentLocalDestino) return;
+
+                if (planejamentos.length && planejamentos[0].tipo === currentLocalDestino.tipo) return;
+
+                $.getUrlAjax(null, 'buscar-planejamento?tipo=' + currentLocalDestino.tipo, true, function (res) {
+                    planejamentos = res.list;
+                    $Planejamento[0].selectize.setValue(null);
+                    $Planejamento[0].selectize.clearOptions();
+                    $Planejamento[0].selectize.refreshOptions();
+                    $Planejamento[0].selectize.addOption(planejamentos);
+                    $Planejamento.parents('.form-group').show();
+                    $Planejamento[0].selectize.enable();
+                    $Planejamento[0].selectize.focus();
+                });
+            }
+
+            function callbackLocalOrigem(res) {
+                if (!res.planejamentoAtivo) {
+                    MostraAlerta(`Local não possui Lote Ativo. Escolha outro Local!`,
+                        "Atenção", TipoAlerta.Warning, $(this), false, false, function () {
+                            $LocalOrigem[0].selectize.setValue(null);
+                            $LocalOrigem[0].selectize.clearOptions();
+                            $LocalOrigem[0].selectize.refreshOptions();
+                            $LocalOrigem[0].selectize.focus();
+                            currentLocalOrigem = null;
+                    });
+
+                    currentLote = null;
+
+                    return;
+                }
+
+                $('#QuantidadeAnimaisLoteOrigem').val(res.lote[0].quantidadeAnimais);
+                $('#DataEntrada').val(FormatarData(res.lote[0].dataEntrada));
+
+                currentLote = res.lote[0];
+
+                //console.log(res);
+            }
+
+            function buscarLocalAtivo(local, fnCallback) {
+
+                if (!local) return;
+
+                $.getUrlAjax(null, 'buscar-lote-ativo-local?idLocal=' + local.id, true, function (res) {
+                    fnCallback(res);
+                });
+            }
+
+            function obterObjetoMotivo(idMotivo) {
+
+                var motivo = null;
+
+                $.each(listMotivos, function (i, item) {
+                    if (item.id === idMotivo) {
+                        motivo = item;
+                        return;
+                    }
+                });
+
+                return motivo;
+            }
+
+            function validaLocais(model) {
+
+                if (model.localOrigem === null) {
+                    MostraAlerta("Local de Origem precisa ser informado!", "Atenção", TipoAlerta.Warning, $(this), false, false, function () {
+                        $LocalOrigem[0].selectize.focus();
+                    });
+
+                    return false;
+                }
+
+                if (model.localDestino === null) {
+                    MostraAlerta("Local de Destino precisa ser informado!", "Atenção", TipoAlerta.Warning, $(this), false, false, function () {
+                        $LocalDestino[0].selectize.focus();
+                    });
+
+                    return false;
+                }
+
+                if (model.loteDestino.id === 0 && !model.loteDestino.planejamento) {
+                    MostraAlerta("Planejamento precisa ser informado!", "Atenção", TipoAlerta.Warning, $(this), false, false, function () {
+                        $Planejamento[0].selectize.focus();
+                    });
+
+                    return false;
+                }
+
+                return true;
+            }
+
+            function salvarDados() {
+
+                var jsonLote = $('#form').GetJsonData();
+
+                delete currentLote.planejamento;
+                if (currentLoteDestino)
+                    delete currentLoteDestino.planejamento;
+
+                var modelLote = Object.assign(jsonLote, {
+                    localOrigem: currentLocalOrigem,
+                    localDestino: currentLocalDestino,
+                    motivo: obterObjetoMotivo(jsonLote.motivo),
+                    loteOrigem: currentLote,
+                    loteDestino: currentLoteDestino ? currentLoteDestino : { id: 0, planejamento: currentPlanejamento }
+                });
+
+                console.log(modelLote);
+
+                if (!validaLocais(modelLote)) return;
+
+                if (!validarQuantidadeAnimais(modelLote)) return;
+
+                var fnSalvar = function () {
+                    $.postUrlAjax(modelLote, 'nova-movimentacao-animal', true, function (res) {
+                        MostraAlerta("Movimentação Cadastrada com sucesso!", "Operação realizada", TipoAlerta.Sucesso, $(this), false, false, function () {
+                            $.load();
+                            window.location.href = raizAplicacao + "movimentacoes-animal";
+                        });
+                    });
+                }
+
+                if (!validarCapacidadeLocal(modelLote)) {
+                    MostraAlertaConfirma(`Total de animais (${modelLote.loteOrigem.quantidadeAnimais}) maior que a capacidade do local destino(${modelLote.localDestino.capacidade}). Deseja prosseguir?`, "Atenção", TipoAlerta.Warning, $(this),
+                        function () {
+                            fnSalvar();
+                        });
+
+                    return;
+                }
+
+                fnSalvar();
+            }
+
+            function validarQuantidadeAnimais(modelLote) {
+                var qtdAnimaisOrigem = modelLote.loteOrigem.quantidadeAnimais,
+                    qtdAnimaisDestino = modelLote.quantidadeAnimais;
+
+                if (qtdAnimaisDestino === 0) {
+                    MostraAlerta(`Total de animais precisa ser maior do que 0`, "Atenção", TipoAlerta.Warning, $('#QuantidadeAnimais'), false, false);
+                    return false;
+                }
+
+                if (qtdAnimaisDestino > qtdAnimaisOrigem) {
+                    MostraAlerta(`Total de animais informado (${modelLote.quantidadeAnimais}) é maior que a Quantidade de Animais do Local de Origem(${modelLote.loteOrigem.quantidadeAnimais})`, "Atenção", TipoAlerta.Warning, $('#QuantidadeAnimais'), false, false);
+                    return false;
+                }
+
+                return true;
+            }
+
+            function validarCapacidadeLocal(modelLote) {
+                var capacidade = modelLote.localDestino.capacidade || 0,
+                    qtdAnimais = modelLote.loteOrigem.quantidadeAnimais;
+
+                if (qtdAnimais > capacidade) {
+                    return false;
+                }
+
+                return true;
+            }
+
+            function callbackMotivoCadastrado(data) {
+                listMotivos.push(data);
+                $('#Motivo').append(`<option value='${data.id}'>${data.nome}</option>`);
+                $('#Motivo').val(data.id);
+            }
+
+        });
+</script>
+    @{await Html.RenderPartialAsync("_CadastroMotivoMovimentacaoModal");}
+}

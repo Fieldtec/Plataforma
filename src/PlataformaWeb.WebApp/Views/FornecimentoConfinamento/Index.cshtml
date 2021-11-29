@@ -1,0 +1,235 @@
+﻿@inject PlataformaWeb.Business.Interfaces.IUser AppUser
+@using PlataformaWeb.Business.DTO
+@{
+    ViewData["Title"] = "Cadastro de Fornecimentos";
+
+    var locais = (List<PastoCurralDTO>)ViewBag.currais;
+    var racoes = (List<RacaoDTO>)ViewBag.racoes;
+
+}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-content-center align-items-center">
+        @if (!AppUser.EhAdmin())
+        {
+            <a asp-action="Create" class="btn btn-sm btn-primary text-right"><i class="fa fa-plus"></i>&nbsp;Novo Cadastro</a>
+        }
+    </div>
+    <div class="card-body">
+        <fieldset class="form">
+            <legend class="FundoDestaque">Filtros</legend>
+            <form id="formFiltro" novalidate>
+                <div class="form-row">
+                    <div class="form-group col-3">
+                        <label class="control-label">Data Início</label>
+                        <input id="DataInicio" class="form-control LetraFormulario data" required value="@DateTime.Now.ToShortDateString()" name="dataInicio" />
+                    </div>
+                    <div class="form-group col-3">
+                        <label class="control-label">Data Final</label>
+                        <input id="DataFinal" class="form-control LetraFormulario data" required value="@DateTime.Now.ToShortDateString()" name="dataFinal" />
+                    </div>
+                    <div class="form-group col-3">
+                        <label class="control-label">Curral</label>
+                        <select name="idCurral" class="form-control LetraFormulario numerico">
+                            <option value="" selected>TODOS</option>
+                            @foreach (var local in locais)
+                            {
+                                <option value="@local.Id">@local.Nome</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group col-3">
+                        <label class="control-label">Ração</label>
+                        <select name="idRacao" class="form-control LetraFormulario numerico">
+                            <option value="" selected>TODOS</option>
+                            @foreach (var racao in racoes)
+                            {
+                                <option value="@racao.Id">@racao.Nome</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-12 text-center">
+                        <button type="button" style="margin-top: 27px" id="btn_buscar" class="btn btn-sm btn-info"><i class="fa fa-search"></i>&nbsp;Buscar</button>
+                    </div>
+                </div>
+            </form>
+        </fieldset>
+        <div class="mt-4 table-responsive table-fixed">
+            <table id="tableFornecimentos" class="table table-hover table-striped">
+                <thead>
+                    <tr>
+                        <th class="text-center"></th>
+                        <th class="text-center">Data</th>
+                        <th>Curral</th>
+                        <th class="text-right">Qtde. Cab</th>
+                        <th>Ração</th>
+                        <th class="text-right">MS Ração</th>
+                        <th class="text-right">KG Previsto</th>
+                        <th class="text-right">KG Realizado</th>
+                        <th class="text-right">KG Diferença</th>
+                        <th class="text-right">Ajuste</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="6"></td>
+                        <td class="text-right font-weight-bold"></td>
+                        <td class="text-right font-weight-bold"></td>
+                        <td class="text-right font-weight-bold"></td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <p>
+            <button id="btn_remover_selecionados" type="button" class="btn btn-danger btn-sm"><i class="fa fa-trash"></i>&nbsp;Remover Selecionado(s)</button>
+        </p>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script type="text/javascript">
+        $(document).ready(function () {
+
+            $(document).on('click', '#btn_buscar', function () {
+                if ($('#formFiltro').ValidForm()) {
+                    buscarFornecimentos();
+                }
+            });
+
+            $(document).on('click', '#btn_remover_selecionados', function () {
+                var list = $('#tableFornecimentos').grid('getSelected');
+                if (list.length) {
+                    removerFornecimentos(list);
+                } else {
+                    MostraAlerta("Nenhum Fornecimento foi marcado para exclusão", "Atenção", TipoAlerta.Warning, $(this), false, false);
+                    return;
+                }
+            });
+
+            function removerFornecimentos(list) {
+                MostraAlertaConfirma(`Confirma a exclusão dos ${list.length} fornecimento(s) selecionado(s) ?`, 'Confirma?', TipoAlerta.Warning,
+                    $(this), function () {
+                        $.postUrlAjax(list, 'remover-kg-fornecimento', true, function (res) {
+                            MostraAlerta("Fornecimentos excluídos com sucesso.", "Sucesso", TipoAlerta.Sucesso, $(this), true, true, function () {
+                                buscarFornecimentos();
+                            });
+                        });
+                    });
+            }
+
+            $('#tableFornecimentos').grid({
+                "bSort": false,
+                hasSelectAll: true,
+                columns: [
+                    {
+                        title: "", orderable: false, className: 'text-center', data: function (row) {
+                            return `<input type="checkbox" value="${row.id}" />`;
+                        }
+                    },
+                    {
+                        title: "Data", className: 'text-center',
+                        data: function (row, type, val, meta) {
+                            if (type === "display") {
+                                return FormatarData(row.dataFornecimento);
+                            }
+                            return row;
+                        }
+                    },
+                    { title: "Curral", data: "curral" },
+                    { title: "Qtde. Cab", data: "quantidadeAnimais", className: 'text-right' },
+                    { title: "Ração", data: "nomeRacao" },
+                    {
+                        title: "MS Ração", className: 'text-right',
+                        data: function (row, type, val, meta) {
+                            if (type === "display") {
+                                return formataMoeda(row.materiaSecaRacao, 2, ',', '.') + " %";
+                            }
+                            return row;
+                        }
+                    },
+                    {
+                        title: "Kg Previsto", className: 'text-right',
+                        data: function (row, type, val, meta) {
+                            if (type === "display") {
+                                return Math.ceil(row.kgPrevisto);
+                            }
+                            return row;
+                        }
+                    },
+                    {
+                        title: "Kg Realizado", className: 'text-right',
+                        data: function (row, type, val, meta) {
+                            if (type === "display") {
+                                if (row.kgRealizado === null) return '';
+                                return Math.ceil(row.kgRealizado);
+                            }
+                            return row;
+                        }
+                    },
+                    {
+                        title: "Kg Diferença", className: 'text-right',
+                        data: function (row, type, val, meta) {
+                            if (type === "display") {
+                                //if (row.kgDiferenca < 0) return Math.floor(row.kgDiferenca);
+                                //else if (row.kgDiferenca > 0) return Math.ceil(row.kgDiferenca);
+                                return Math.ceil(row.kgRealizado) - Math.ceil(row.kgPrevisto);
+                            }
+                            return row;
+                        }
+                    },
+                    {
+                        title: "Ajuste", className: "text-right",
+                        data: function (row, type) {
+                            if (type === "display") {
+                                return row.ajuste + " %";
+                            }
+                            return row;
+                        }
+                    }
+                ]
+            });
+
+            buscarFornecimentos();
+
+            function buscarFornecimentos() {
+                var jsonData = $('#formFiltro').GetJsonData();
+
+                if ($('#DataInicio').compareDate($('#DataFinal').val()) > 0) {
+                    MostraAlerta("Data Inicial não pode ser maior do que a Data Final", "Atenção", TipoAlerta.Warning, $('#DataFinal'), true, true);
+                    return;
+                }
+
+                $.postUrlAjax(jsonData, 'filtro-fornecimento', true, function (res) {
+                    $('#tableFornecimentos').grid("setData", res);
+                    atualizarTotais();
+                });
+
+            }
+
+            function atualizarTotais() {
+                var list = $('#tableFornecimentos').grid('getData'),
+                    totalKgPrevisto = 0,
+                    totalKgRealizado = 0,
+                    totalKgDiferenca = 0;
+
+                $.each(list, function (i, item) {
+                    totalKgPrevisto += Math.ceil(item.kgPrevisto);
+                    totalKgRealizado += Math.ceil(item.kgRealizado);
+                    totalKgDiferenca += (Math.ceil(item.kgRealizado) - Math.ceil(item.kgPrevisto));
+                });
+
+                var $foot = $('#tableFornecimentos tfoot tr');
+
+                $foot.find('td:eq(1)').html(Math.ceil(totalKgPrevisto));
+                $foot.find('td:eq(2)').html(Math.ceil(totalKgRealizado));
+                $foot.find('td:eq(3)').html(Math.ceil(totalKgDiferenca));
+
+            }
+        });
+    </script>
+}

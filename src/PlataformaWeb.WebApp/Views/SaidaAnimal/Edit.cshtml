@@ -1,0 +1,214 @@
+﻿@model SaidaAnimalCadastroViewModel;
+@using PlataformaWeb.WebApp.Extensions
+@using PlataformaWeb.Business.Extensions
+@using PlataformaWeb.Business.DTO;
+@{
+    ViewData["Title"] = "Editando Lote Saída N° " + Model.NumeroLote;
+}
+
+<div class="row align-items-center justify-content-center">
+    <div class="col-lg-10">
+        <vc:summary></vc:summary>
+    </div>
+    <div class="col-lg-10">
+        <fieldset class="form h-100" disabled>
+            <legend class="FundoDestaque">Dados do Lote</legend>
+            <div class="form-row">
+                <div class="form-group col-md-3">
+                    <label for="LoteSaida" class="control-label">Lote Saída</label>
+                    <input id="LoteSaida" value="@Model.NumeroLote" class="form-control numerico" required />
+                </div>
+                <div class="form-group col-md-3">
+                    <label for="DataEmbarque" class="control-label">Dt. Embarque</label>
+                    <input id="DataEmbarque" value="@Model.DataEmbarque.ToShortDateString()" name="dataEmbarque" class="form-control" disabled />
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="Destino" class="control-label">Destino</label>
+                    <input id="Destino" value="@Model.Destino" name="destino" class="form-control" disabled />
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group col-md-3">
+                    <label for="Tipo" class="control-label">Tipo</label>
+                    <input id="Tipo" class="form-control" value="@Model.TipoSaida.ObterDescricao()" />
+                </div>
+                <div class="form-group col-md-3">
+                    <label for="QuantidadeAnimalPrevista" class="control-label">Qtd. Animal Prevista</label>
+                    <input id="QuantidadeAnimalPrevista" value="@Model.QuantidadeAnimalPrevisto" name="quantidadeAnimalPrevista" class="form-control" disabled />
+                </div>
+                <div class="form-group col-md-3">
+                    <label for="QuantidadeAnimalEmbarcado" class="control-label">Qtd. Animal Embarcado</label>
+                    <input id="QuantidadeAnimalEmbarcado" value="@Model.QuantidadeAnimalEmbarcado" class="form-control numerico" disabled />
+                </div>
+            </div>
+        </fieldset>
+    </div>
+
+    <div id="div_dados_locais" class="col-lg-10 mt-3">
+        <fieldset class="form h-100">
+            <legend class="FundoDestaque">Locais</legend>
+
+            <form id="formDadosLote" enctype="multipart/form-data" novalidate style="display: none">
+                <div class="form-row p-2">
+                    <div class="form-group col-xl-3 col-lg-4">
+                        <label for="LocalOrigem" class="control-label">Local Origem</label>
+                        <input id="LocalOrigem" name="local" class="form-control" disabled />
+                    </div>
+                    <div class="form-group col-xl-3 col-lg-4">
+                        <label for="TotalAnimalEmbarcado" class="control-label">Tot. Animais Embarcados</label>
+                        <input id="TotalAnimalEmbarcado" name="quantidadeEmbarcado" class="form-control inteiro" disabled />
+                    </div>
+                    <div class="form-group col-xl-2 col-lg-4">
+                        <label for="PesoSaida" class="control-label">Peso Saída</label>
+                        <input id="PesoSaida" name="pesoMedio" class="form-control decimal" required />
+                    </div>
+                    <div class="form-group col-xl-2 col-lg-4">
+                        <button style="margin-top: 27px; margin-bottom: 0px;" type="button" id="btn_novo_local" class="btn btn-sm btn-primary text-right mb-3"><i class="fa fa-save"></i>&nbsp;Alterar</button>
+                    </div>
+                </div>
+            </form>
+            <div class="table-responsive">
+                <table id="tabelaLocais" class="table table-sm table-striped">
+                    <thead>
+                        <tr>
+                            <th>Local de Origem</th>
+                            <th class="text-right">Totais Animais Embarcados</th>
+                            <th class="text-right">Peso Saída</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </fieldset>
+    </div>
+
+</div>
+<div class="text-center mt-3">
+    <button id="btn_salvar_saida" type="button" class="btn btn-success"><i class="fa fa-save"></i>&nbsp;Salvar</button>
+    <a asp-action="Index" class="btn btn-info"><i class="fa fa-times"></i>&nbsp;Voltar</a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+
+        var loteSaida = @Html.Raw(Json.Serialize(Model));
+        var indexAtualizacao = -1;
+
+        $(document).ready(function () {
+
+            $(document).on('click', '#btn_salvar_saida', function () {
+                salvarSaida();
+            });
+
+            $(document).on('click', '#btn_novo_local', function () {
+                var isValidForm = $('#formDadosLote').ValidForm();
+                if (isValidForm) {
+                    inserirLocal($('#formDadosLote').GetJsonData());
+                }
+            });
+
+            $('#tabelaLocais').grid({
+                "bSort": false,
+                data: loteSaida.lotes,
+                columns: [
+                    {
+                        title: "Local de Origem",
+                        data: function (row, type, val, meta) {
+                            if (type === "display") {
+                                return row.local.nome;
+                            }
+                            return row;
+                        }
+                    },
+                    {
+                        title: "Totais Animais Embarcados", className: "text-right",
+                        data: function (row, type, val, meta) {
+                            if (type === "display") {
+                                return row.quantidadeEmbarcado;
+                            }
+                            return row;
+                        }
+                    },
+                    {
+                        title: "Peso Médio", className: "text-right",
+                        data: function (row, type) {
+                            if (type === "display") {
+                                return formataMoeda(row.pesoMedio, 2, ",", ".");
+                            }
+                            return row;
+                        }
+                    },
+                    {
+                        title: "Ações", className: "text-center", data: function (row, type, val, meta) {
+                            if (type === "display") {
+                                var id = row.local.id;
+                                return `<a style="color: white !important" title="Editar" class="btn btn-sm btn-warning td_editar_local" data-id="${id}"><span class="fas fa-edit"></span></a>`
+                            }
+                            return row;
+                        }
+                    }
+                ]
+            });
+
+            $(document).on("click", '.td_editar_local', function (e) {
+                e.preventDefault();
+                indexAtualizacao = $(e.currentTarget).parents("tr").index();
+                var data = $('#tabelaLocais').grid('getByIndex', indexAtualizacao);
+                $('#LocalOrigem').val(data.local.nome);
+                $('#QuantidadeAnimal').val(data.local.lotacao);
+                $('#TotalAnimalEmbarcado').val(data.quantidadeEmbarcado);
+                $('#PesoSaida').val(formataMoeda(data.pesoMedio, 2, ',', '.'));
+
+                $('#formDadosLote').show();
+
+                $('#PesoSaida').focus();
+            });
+
+        });
+
+        function inserirLocal(json) {
+
+            console.log(json);
+
+            if (!json.pesoMedio) {
+                MostraAlerta("Peso Médio precisa ser informado", "Atenção", TipoAlerta.Warning,
+                    $('#PesoSaida'), true, true);
+
+                return;
+            }
+
+            var listLocais = $('#tabelaLocais').grid('getData');
+            listLocais[indexAtualizacao].pesoMedio = json.pesoMedio;
+            $('#tabelaLocais').grid('setData', listLocais);
+            indexAtualizacao = -1;            
+
+            $('#formDadosLote').find('input, select').val("");
+            $('#formDadosLote').hide();
+
+        }
+        
+        function salvarSaida() {
+
+            var saidaAnimal = obterObjetoSaidaAnimal();
+
+            if (!saidaAnimal) return;
+
+            $.postUrlAjax(saidaAnimal, 'editar-saida-animal/' + saidaAnimal.id, true, function (res) {
+                MostraAlerta("Saída editada com sucesso!", "Operação realizada", TipoAlerta.Sucesso, $(this), false, false, function () {
+                    $.load();
+                    window.location.href = raizAplicacao + "saidas-animais";
+                });
+            });
+        }
+
+        function obterObjetoSaidaAnimal() {
+                       
+            var lotes = $('#tabelaLocais').grid('getData');
+
+            loteSaida.lotes = lotes;
+
+            return loteSaida;
+        }
+    </script>
+}

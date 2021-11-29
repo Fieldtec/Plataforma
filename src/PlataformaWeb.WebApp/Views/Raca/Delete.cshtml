@@ -1,0 +1,32 @@
+﻿@model RacaViewModel;
+
+@{ ViewData["Title"] = "Confirma a exclusão?"; }
+
+<form id="form" asp-action="Delete" enctype="multipart/form-data" novalidate>
+    <div class="row align-items-center justify-content-center">
+        <div class="col-xl-7 col-lg-10">
+            <vc:summary></vc:summary>
+        </div>
+        <div class="col-xl-7 col-lg-10">
+            <fieldset class="form h-100">
+                <legend class="FundoDestaque">Dados da Raça</legend>
+                <div class="form-row">
+                    <div class="form-group col-lg-12">
+                        <label asp-for="Nome" class="control-label"></label>
+                        <input asp-for="Nome" class="form-control" readonly />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                        <label asp-for="CodigoBnd" class=" control-label"></label>
+                        <input asp-for="CodigoBnd" class="form-control" readonly />
+                    </div>
+                </div>
+            </fieldset>
+        </div>
+    </div>
+    <div class="text-center mt-3">
+        <button autofocus type="submit" class="btn btn-danger"><i class="fa fa-trash"></i>&nbsp;Remover</button>
+        <a asp-action="Index" class="btn btn-info"><i class="fa fa-times"></i>&nbsp;Voltar</a>
+    </div>
+</form>

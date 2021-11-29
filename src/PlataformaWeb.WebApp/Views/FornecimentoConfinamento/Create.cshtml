@@ -1,0 +1,293 @@
+﻿@using PlataformaWeb.WebApp.Extensions
+
+@{ ViewData["Title"] = "Novo Fornecimento"; }
+
+<div class="row align-items-center justify-content-center">
+    <div class="col-lg-12">
+        <vc:summary></vc:summary>
+    </div>
+    <div class="col-lg-12">
+        <fieldset class="form">
+            <legend class="FundoDestaque">Dados do Fornecimento</legend>
+            <form id="formBuscar" novalidate>
+                <div class="form-row">
+                    <div class="form-group col-3">
+                        <label class="control-label">Data do Fornecimento</label>
+                        <input id="dataFornecimento" class="form-control LetraFormulario data" required value="@DateTime.Now.ToShortDateString()" name="dataFornecimento" />
+                    </div>
+                    <div class="form-group col-3">
+                        <button type="button" style="margin-top: 27px" id="btn_buscar" class="btn btn-sm btn-info"><i class="fa fa-search"></i></button>
+                    </div>
+                </div>
+            </form>
+            <form id="formFornecimento" novalidate>
+                <div class="mt-4 table-responsive table-fixed">
+                    <table id="tableFornecimentos" class="table table-hover table-striped">
+                        <thead></thead>
+                        <tbody></tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="5"></td>
+                                <td class="text-right font-weight-bold"></td>
+                                <td class="text-right font-weight-bold"></td>
+                                <td class="text-right font-weight-bold"></td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </form>
+        </fieldset>
+    </div>
+</div>
+<div class="text-center mt-3">
+    <button id="btn_salvar" type="submit" class="btn btn-success"><i class="fa fa-save"></i>&nbsp;Salvar</button>
+    <a asp-action="Index" class="btn btn-info"><i class="fa fa-times"></i>&nbsp;Voltar</a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        $(document).ready(function () {
+
+            var dataFornecimento = null;
+
+            $(document).on('blur', '.kgRealizado', function () {
+                var kg = $(this).getValue() || 0,
+                    $tr = $(this).parents('tr'),
+                    index = $tr.index(),
+                    fornecimento = $('#tableFornecimentos').grid('getByIndex', index),
+                    kgDiferenca = kg - Math.ceil(fornecimento.kgPrevisto);
+
+                $tr.find('td:eq(7)').html(kgDiferenca);
+
+                atualizarTotais();
+            });
+
+
+            $(document).on('click', '#btn_buscar', function () {
+                var isValid = $('#formBuscar').ValidForm();
+                if (isValid) {
+                    buscarFornecimentos();
+                }
+            });
+
+            $(document).on('click', '.btn_calcular_previsto', function () {
+                var id = $(this).data("id"),
+                    curral = $(this).data("curral"),
+                    $tr = $(this).parents("tr"),
+                    index = $tr.index();
+
+                MostraAlertaConfirma(`Confirma o recálculo do KG Previsto para o local ${curral}?`, "Confirma", TipoAlerta.Warning,
+                    $(this), function () {
+
+                        $.postUrlAjax(id, 'recalcular-kg-previsto', true, function (res) {
+
+                            $tr.find('td:eq(5)').html(Math.ceil(res.kgPrevisto));
+                            $tr.find('td:eq(7)').html(Math.ceil(res.kgDiferenca));
+                            atualizarTotais();
+
+                            MostraAlerta("KG Previsto recalculado com sucesso.", "Sucesso", TipoAlerta.Sucesso, $(this), false, false);
+                        });
+                    });
+
+
+            });
+
+            $(document).on('click', '#btn_salvar', function () {
+                var isValid = $('#formFornecimento').ValidForm();
+                if (isValid) {
+                    salvarFornecimentos();
+                }
+            });
+
+            $('#tableFornecimentos').grid({
+                "bSort": false,
+                columns: [
+                    {
+                        title: "Data", className: 'text-center',
+                        data: function (row, type, val, meta) {
+                            if (type === "display") {
+                                return FormatarData(row.dataFornecimento);
+                            }
+                            return row;
+                        }
+                    },
+                    { title: "Curral", data: "curral" },
+                    { title: "Qtde. Cab", data: "quantidadeAnimais", className: 'text-right' },
+                    { title: "Ração", data: "nomeRacao" },
+                    {
+                        title: "MS Ração", className: 'text-right',
+                        data: function (row, type, val, meta) {
+                            if (type === "display") {
+                                return formataMoeda(row.materiaSecaRacao, 2, ',', '.') + " %";
+                            }
+                            return row;
+                        }
+                    },
+                    {
+                        title: "Kg Previsto", className: 'text-right',
+                        data: function (row, type, val, meta) {
+                            if (type === "display") {
+                                return Math.ceil(row.kgPrevisto);
+                                //return formataMoeda(row.kgPrevisto, 4, ',', '.');
+                            }
+                            return row;
+                        }
+                    },
+                    {
+                        title: "Kg Realizado", className: 'text-right',
+                        data: function (row, type, val, meta) {
+                            if (type === "display") {
+                                return Math.ceil(row.kgRealizado);
+                                //return formataMoeda(row.kgRealizado, 4, ',', '.');
+                            }
+                            return row;
+                        }
+                    },
+                    {
+                        title: "Kg Diferença", className: 'text-right',
+                        data: function (row, type, val, meta) {
+                            if (type === "display") {
+                                return Math.ceil(row.kgRealizado) - Math.ceil(row.kgPrevisto);
+                                //return formataMoeda(row.kgDiferenca, 4, ',', '.');
+                            }
+                            return row;
+                        }
+                    },
+                    {
+                        title: "Ajuste", className: "text-right",
+                        data: function (row, type) {
+                            if (type === "display") {
+                                return row.ajuste + " %";
+                            }
+                            return row;
+                        }
+                    },
+                    {
+                        title: "Ação", className: "text-center",
+                        data: function (row, type) {
+
+                            if (row.ehPrimeiroDia) {
+                                return `<button type="button" data-curral="${row.curral}" data-id="${row.id}" class="no_focus btn_calcular_previsto btn btn-sm btn-warning" title="Recalcular Kg Previsto"><i class="fa fa-exchange-alt"></i></button>`
+                            }
+
+                            return ' - ';
+                        }
+                    }
+
+
+                ],
+                afterFetch: function (rows, data) {
+                    $.each(rows, function (i, item) {
+
+                        var $row = $(item),
+                            $liKgRealizado = $row.find('td:eq(6)');
+
+                        $liKgRealizado.html(obterInput(data[i].kgRealizado));
+
+                    });
+
+                    $('.inteiro').mask("99999999", { selectOnFocus: true });
+
+                    $(rows[0]).find('input').focus();
+
+                    atualizarTotais();
+                }
+            });
+
+            function atualizarTotais() {
+                var list = $('#tableFornecimentos').grid('getData'),
+                    totalKgPrevisto = 0,
+                    totalKgRealizado = 0,
+                    totalKgDiferenca = 0;
+
+
+                $.each(list, function (i, item) {
+                    var $input = $('#tableFornecimentos tbody tr').eq(i).find('input'),
+                        kgRealizado = $input.getValue();
+                    totalKgPrevisto += Math.ceil(item.kgPrevisto);
+                    totalKgRealizado += kgRealizado;
+                    totalKgDiferenca += (kgRealizado - Math.ceil(item.kgPrevisto));
+                });
+
+                var $foot = $('#tableFornecimentos tfoot tr');
+
+                $foot.find('td:eq(1)').html(Math.ceil(totalKgPrevisto));
+                $foot.find('td:eq(2)').html(Math.ceil(totalKgRealizado));
+                $foot.find('td:eq(3)').html(Math.ceil(totalKgDiferenca));
+
+            }
+
+            function salvarFornecimentos() {
+                var jsonData = obterJsonData();
+
+                if (!jsonData) return;
+
+                MostraAlertaConfirma("Confirma o lançamento dos fornecimentos?", 'Confirma?', TipoAlerta.Warning, $(this), function () {
+                    $.postUrlAjax(jsonData, 'confirmar-kg-fornecimento', true, function (res) {
+                        MostraAlerta("Lançamentos gravados com Sucesso.", "Sucesso", TipoAlerta.Sucesso, $(this), true, true, function () {
+                            window.location.href = raizAplicacao + 'fornecimento-racao-confinamento';
+                        });
+                    });
+                });
+
+            }
+
+            function obterJsonData() {
+                var list = $('#tableFornecimentos').grid('getData'),
+                    index = -1,
+                    teveLancamento = false,
+                    msg = null;
+
+                $.each(list, function (i, item) {
+                    //if (index === -1) {
+                    var $tr = $(`#tableFornecimentos tbody tr:eq(${i})`),
+                        $input = $tr.find('input'),
+                        kgRealizado = $input.getValue();
+
+                    if (kgRealizado !== null) {
+                        list[i].kgRealizado = $input.getValue();
+                        teveLancamento = true;
+                    }
+                    else {
+                        list[i].kgRealizado = null;
+                    }
+                    //}
+                });
+
+                if (!teveLancamento) {
+                    MostraAlerta("É necessário efetuar o lançamento de pelo menos 1 Local", "Atenção", TipoAlerta.Warning, $(this), false, false, function () {
+                        $(`#tableFornecimentos tbody tr td input`).eq(0).focus();
+                    });
+                    return null;
+                }
+
+                return list;
+            }
+
+            function obterInput(kgRealizado) {
+                var html = [];
+                html.push("<input class='form-control LetraFormulario inteiro kgRealizado' name='kgRealizado' ")
+
+                if (kgRealizado) {
+                    html.push(`value=${Math.ceil(kgRealizado)}`);
+                }
+
+                html.push(" />")
+                return html.join("");
+            }
+
+            buscarFornecimentos();
+
+            function buscarFornecimentos() {
+                dataFornecimento = $('#dataFornecimento').getValue();
+                $.postUrlAjax(dataFornecimento, 'filtro-data-fornecimento', true, function (res) {
+                    $('#tableFornecimentos').grid('setData', res);
+                });
+            }
+
+        });
+    </script>
+}

@@ -1,0 +1,50 @@
+[
+  {
+    "outputFileName": "wwwroot/css/sb-admin-2.min.css",
+    "inputFiles": [
+      "wwwroot/css/sb-admin-2.css"
+    ]
+  },
+  {
+    "outputFileName": "wwwroot/css/site.min.css",
+    "inputFiles": [
+      "wwwroot/css/site.css"
+    ]
+  },
+  {
+    "outputFileName": "wwwroot/js/validators.min.js",
+    "inputFiles": [
+      "wwwroot/js/validators.js"
+    ]
+  },
+  {
+    "outputFileName": "wwwroot/js/validators-message.min.js",
+    "inputFiles": [
+      "wwwroot/js/validators-message.js"
+    ]
+  },
+  {
+    "outputFileName": "wwwroot/js/utils.min.js",
+    "inputFiles": [
+      "wwwroot/js/utils.js"
+    ]
+  },
+  {
+    "outputFileName": "wwwroot/js/site.min.js",
+    "inputFiles": [
+      "wwwroot/js/site.js"
+    ]
+  },
+  {
+    "outputFileName": "wwwroot/js/grid.min.js",
+    "inputFiles": [
+      "wwwroot/js/grid.js"
+    ]
+  },
+  {
+    "outputFileName": "wwwroot/js/relatorio.min.js",
+    "inputFiles": [
+      "wwwroot/js/relatorio.js"
+    ]
+  }
+]

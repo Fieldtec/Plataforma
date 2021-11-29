@@ -1,0 +1,288 @@
+﻿@model RacaoViewModel;
+@using PlataformaWeb.WebApp.Extensions
+
+@{ ViewData["Title"] = "Cadastrar Nova Ração"; }
+
+<form id="form" enctype="multipart/form-data" novalidate>
+    <div class="row align-items-center justify-content-center">
+        <div class="col-xl-10 col-lg-12">
+            <vc:summary></vc:summary>
+        </div>
+        <div class="col-xl-10 col-lg-12">
+            <fieldset class="form h-100">
+                <legend class="FundoDestaque">Dados da Ração</legend>
+                <div class="form-row">
+                    <div class="form-group col-lg-9">
+                        <label asp-for="Nome" class="control-label"></label>
+                        <input autofocus asp-for="Nome" class="form-control" required />
+                    </div>
+                    <div class="form-group col-lg-3">
+                        <label asp-for="DataFormulacao" class="control-label"></label>
+                        <input asp-for="DataFormulacao" type="text" class="form-control data" required />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-3">
+                        <label asp-for="Tipo" class=" control-label"></label>
+                        <select asp-for="Tipo" class="form-control numerico" asp-items="this.ObterSelectTipoRacao()" required></select>
+                    </div>
+                    <div class="form-group col-md-3">
+                        <label asp-for="Gmd" class=" control-label"></label>
+                        <input asp-for="Gmd" class="form-control decimal3" required />
+                    </div>
+                    <div class="form-group col-md-3">
+                        <label asp-for="ValorKg" class=" control-label"></label>
+                        <input asp-for="ValorKg" class="form-control decimal3 no_focus" readonly />
+                    </div>
+                    <div class="form-group col-md-3">
+                        <label asp-for="MateriaSeca" class=" control-label"></label>
+                        <input asp-for="MateriaSeca" class="form-control decimal3 no_focus" readonly />
+                    </div>
+                </div>
+            </fieldset>
+        </div>
+        <div class="col-lg-12 mt-3">
+            <fieldset class="form h-100">
+                <legend class="FundoDestaque">Insumos</legend>
+                <button type="button" id="btn_novo_insumo" class="btn btn-sm btn-primary text-right mb-3"><i class="fa fa-plus"></i>&nbsp;Novo Insumo</button>
+                <div class="table-responsive">
+                    <table id="tabelaInsumos" class="table table-sm table-striped">
+                        <thead>
+                            <tr>
+                                <th>Insumo</th>
+                                <th class="text-right">% Matéria Sec</th>
+                                <th class="text-right">KG Matéria Sec</th>
+                                <th class="text-right">KG Matéria Natural</th>
+                                <th class="text-right">Valor KG</th>
+                                <th class="text-right">Inclusão Mat. Natural</th>
+                                <th class="text-right">Inclusão Mat. Seca</th>
+                                <th class="text-right">Valor Inclusão</th>
+                                <th class="text-center">Ações</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </fieldset>
+        </div>
+    </div>
+    <div class="text-center mt-3">
+        <button id="btn_salvar_racao" type="button" class="btn btn-success"><i class="fa fa-save"></i>&nbsp;Salvar</button>
+        <a asp-action="Index" class="btn btn-info"><i class="fa fa-times"></i>&nbsp;Voltar</a>
+    </div>
+</form>
+
+
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+
+        var insumoAtualizacao = null,
+            indexAtualizacao = -1;            
+
+        $(document).ready(function () {
+            //$('#form').SubmitForm();
+
+            $(document).on('click', '#btn_salvar_racao', function () {
+                salvarRacao();
+            });
+
+            $(document).on('click', '#btn_novo_insumo', function () {
+                insumoAtualizacao = null;
+                indexAtualizacao = -1;
+                var isValidForm = $('#form').ValidForm();
+                if (isValidForm) {
+                    initModalInsumo(insumoCadastradoCallback);
+                }
+            });
+
+            $('#tabelaInsumos').grid({
+                columns: [
+                    {
+                        title: "Insumo",
+                        data: function (row, type, val, meta) {
+                            if (type === "display") {
+                                return row.insumoAlimento.nome;
+                            }
+                            return row;
+                        }
+                    },
+                    {
+                        title: "% Matéria Sec", className: "text-right",
+                        data: function (row, type) {
+                            if (type === "display") {
+                                return formataMoeda(row.percentualMateriaSeca, 3, ",", ".");
+                            }
+                            return row;
+                        }
+                    },
+                    {
+                        title: "KG Matéria Sec", className: "text-right",
+                        data: function (row, type) {
+                            if (type === "display") {
+                                return formataMoeda(row.kgMateriaSeca, 3, ",", ".");
+                            }
+                            return row;
+                        }
+                    },
+                    {
+                        title: "KG Matéria Natural", className: "text-right",
+                        data: function (row, type) {
+                            if (type === "display") {
+                                return formataMoeda(row.kgMateriaNatural, 3, ",", ".");
+                            }
+                            return row;
+                        }
+                    },
+                    {
+                        title: "Inclusão Mat. Seca", className: "text-right",
+                        data: function (row, type) {
+                            if (type === "display") {
+                                return formataMoeda(row.inclusaoMateriaSeca, 3, ",", ".");
+                            }
+                            return row;
+                        }
+                    },                    
+                    {
+                        title: "Inclusão Mat. Natural", className: "text-right",
+                        data: function (row, type) {
+                            if (type === "display") {
+                                return formataMoeda(row.inclusaoMateriaNatural, 3, ",", ".");
+                            }
+                            return row;
+                        }
+                    },
+                    {
+                        title: "Valor KG", className: "text-right",
+                        data: function (row, type) {
+                            if (type === "display") {
+                                return formataMoeda(row.valorKg, 3, ",", ".");
+                            }
+                            return row;
+                        }
+                    },
+                    {
+                        title: "Valor Inclusão", className: "text-right",
+                        data: function (row, type) {
+                            if (type === "display") {
+                                return formataMoeda(row.valorInclusao, 3, ",", ".");
+                            }
+                            return row;
+                        }
+                    },
+                    {
+                        title: "Ações", className: "text-center", data: function (row, type, val, meta) {
+                            if (type === "display") {
+                                var id = row.id || 0;
+                                return `<a style="color: white !important" title="Editar" class="btn btn-sm btn-warning td_editar_insumo" data-id="${id}"><span class="fas fa-edit"></span></a> <a style="color: white !important" title="Remover" class="btn btn-sm btn-danger td_deletar_insumo" data-id="${id}"><span class="fas fa-trash-alt"></span></a>`
+                            }
+                            return row;
+                        }
+                    }
+                ]
+            });
+
+
+            $(document).on("click", '.td_deletar_insumo', function (e) {
+
+                e.preventDefault();
+
+                var index = $(e.currentTarget).parents("tr").index(),
+                    insumos = $('#tabelaInsumos').grid('getData');
+
+                if (insumos.length === 1) {
+                    $('#tabelaInsumos').grid('setData', []);
+                    $('#ValorKg').val("");
+                    $('#MateriaSeca').val("");
+                } else {
+                    insumos.splice(index, 1);
+                    calcularDados(obterObjetoRacao(insumos));
+                }
+
+            });
+
+            $(document).on("click", '.td_editar_insumo', function (e) {
+
+                e.preventDefault();
+
+                indexAtualizacao = $(e.currentTarget).parents("tr").index();
+
+                insumoAtualizacao = $('#tabelaInsumos').grid('getByIndex', indexAtualizacao);
+
+                initModalInsumo(insumoCadastradoCallback, insumoAtualizacao);
+
+            });
+
+        });
+
+        function existeInsumoNaLista(insumos, insumo) {
+            var existe = false;
+            $.each(insumos, function (i, item) {
+
+                if (item.insumoAlimento.id === insumo.insumoAlimento.id) {
+                    existe = true;
+                    return;
+                }
+            });
+            return existe;
+        }
+
+        //Callback chamado quando um insumo for cadastrado/editado pelo modal
+        function insumoCadastradoCallback(data, callback) {            
+           
+            //obtém insumos cadastrados
+            var insumos = $('#tabelaInsumos').grid('getData');
+
+            if (indexAtualizacao !== -1) {
+                insumos[indexAtualizacao] = Object.assign({}, data);
+            } else {
+
+                if (existeInsumoNaLista(insumos, data)) {
+                    MostraAlerta(`O Insumo ${data.insumoAlimento.nome} já foi cadastrado anteriomente. Escolha outro insumo.`, "Atenção", TipoAlerta.Warning, $(this), false, false);
+                    return;
+                } 
+
+                //adiciona o último insumo na lista
+                insumos.push(data);            
+            }
+
+            //chamando método para realizar os cálculos
+            calcularDados(obterObjetoRacao(insumos), callback);
+        }
+
+        function obterObjetoRacao(insumos) {
+
+            //obtém dados do formulário
+            var racao = $('#form').GetJsonData();
+
+            //insere a lista de insumos na propriedade dentro de ração
+            racao["insumosRacao"] = insumos;
+
+            return racao;
+        }
+
+        function salvarRacao() {
+            var racaoModel = obterObjetoRacao($('#tabelaInsumos').grid('getData'));
+            $.postUrlAjax(racaoModel, 'nova-racao', true, function (res) {
+                MostraAlerta("Ração Cadastrada com sucesso!", "Operação realizada", TipoAlerta.Sucesso, $(this), false, false, function () {
+                    window.location.href = raizAplicacao + "racoes";
+                });
+            });
+        }
+
+        function calcularDados(racaoModel, callback) {
+            $.postUrlAjax(racaoModel, 'calcular-insumo-racao', true, function (res) {
+                $('#tabelaInsumos').grid('setData', res.insumosRacao);
+                $('#ValorKg').val(formataMoeda(res.valorKg, 3, ",", "."));
+                $('#MateriaSeca').val(formataMoeda(res.materiaSeca, 3, ",", "."));
+                if (callback)
+                    callback();
+
+                indexAtualizacao = -1;
+                insumoAtualizacao = null;
+            });
+        }
+
+    </script>
+    @{await Html.RenderPartialAsync("_CadastroRacaoInsumoModal");}
+}

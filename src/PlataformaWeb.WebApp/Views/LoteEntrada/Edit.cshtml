@@ -1,0 +1,184 @@
+﻿@model LoteAnimalViewModel;
+@using PlataformaWeb.WebApp.Extensions
+
+
+@{ ViewData["Title"] = "Editando Lote: " + Model.DataEntrada.Value.ToString("dd/MM/yyyy"); }
+
+<form id="form" enctype="multipart/form-data" novalidate>
+    <div class="row align-items-center justify-content-center">
+        <div class="col-xl-7 col-lg-10">
+            <vc:summary></vc:summary>
+        </div>
+        <div class="col-xl-7 col-lg-10">
+            <input asp-for="Id" name="id" type="hidden" class="numerico" />
+            <fieldset class="form h-100">
+                <legend class="FundoDestaque">Dados do Lote</legend>
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label asp-for="Local" class=" control-label"></label>
+                        <input id="Local" value="@Model.Local.Nome" class="form-control LetraFormulario" required disabled />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="Planejamento" class=" control-label"></label>
+                        <select id="Planejamento" class="form-control LetraFormulario" required></select>
+                        @*<input id="Planejamento" value="@Model.Planejamento.Nome" class="form-control LetraFormulario" required disabled />*@
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="TipoEntrada" class=" control-label"></label>
+                        <select asp-for="TipoEntrada" name="tipoEntrada" disabled class="form-control numerico" required asp-items="this.ObterSelectTipoEntrada()"></select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label asp-for="DataEntrada" class=" control-label"></label>
+                        <input id="DataEntrada" value="@Model.DataEntrada.Value.ToString("dd/MM/yyyy")" name="dataEntrada" required type="text" class="form-control data" />
+                    </div>
+                    @if (Model.TipoEntrada == PlataformaWeb.Business.Enums.TipoEntradaLote.Compra)
+                    {
+                        <div class="form-group col-md-4">
+                            <label asp-for="ValorCompra" class=" control-label"></label>
+                            <input id="ValorCompra" value="@this.FormataDecimal(Model.ValorCompra, 2)" required class="form-control money" disabled />
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label asp-for="ProdutorParceiro" class=" control-label"></label>
+                            <input id="ProdutorParceiro" value="@Model.ProdutorParceiro?.Nome" required class="form-control LetraFormulario" disabled />
+                        </div>
+                    }
+
+                    <div class="form-group col-md-4">
+                        <label asp-for="Raca" class=" control-label"></label>
+                        <select id="Raca" class="form-control LetraFormulario" required></select>
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="Categoria" class=" control-label"></label>
+                        <select id="Categoria" class="form-control LetraFormulario" required></select>
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="PesoEntrada" class=" control-label"></label>
+                        <input asp-for="PesoEntrada" name="pesoEntrada" asp-format="{0:N2}" required class="form-control decimal" />
+                    </div>
+
+                    <div class="form-group col-md-4">
+                        <label asp-for="IdadeEntrada" class=" control-label"></label>
+                        <input id="IdadeEntrada" value="@Model.IdadeEntrada" disabled required class="form-control inteiro" />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label asp-for="QuantidadeAnimais" class=" control-label"></label>
+                        <input id="QuantidadeAnimais" value="@Model.QuantidadeAnimais" required disabled class="form-control inteiro" />
+                    </div>
+                </div>
+            </fieldset>
+        </div>
+    </div>
+    <div class="text-center mt-3">
+        <button id="btn_salvar_lote" type="button" class="btn btn-success"><i class="fa fa-save"></i>&nbsp;Salvar</button>
+        <a asp-action="Index" class="btn btn-info"><i class="fa fa-times"></i>&nbsp;Voltar</a>
+    </div>
+</form>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script src="~/lib/selectize.js/js/standalone/selectize.min.js"></script>
+    <link href="~/lib/selectize.js/css/selectize.bootstrap3.min.css" rel="stylesheet" />
+    <script>
+
+        var currentLote = @Html.Raw(Json.Serialize(Model));
+        var $Categoria = null, $Raca = null;
+        var currentCategoria = Object.assign({}, currentLote.categoria), currentRaca = Object.assign({}, currentLote.raca);
+        var currentPlanejamento = Object.assign({}, currentLote.planejamento);
+        var planejamentos = @Html.Raw(Json.Serialize(ViewBag.planejamentos));
+
+        $(document).ready(function () {
+
+            $(document).on('click', '#btn_salvar_lote', function () {
+                var isValid = $('#form').ValidForm();
+                if (isValid) {
+                    salvarDadosLote();
+                }
+            });
+
+            $Categoria = criarSelectizeObjeto('#Categoria', 'buscar-categoria', {
+                onChange: function (value) {
+                    currentCategoria = this.options[value] || null;
+                },
+                options: [currentLote.categoria],
+                render: {
+                    option: function (item, escape) {
+                        return `<div class="selectize-div">
+                                    <span class="selectize-titulo">${item.nome}</span>
+                                    <span class="selectize-subtitulo">Idade Mínima: ${item.idadeMinima} - Idade Máxima: ${item.idadeMaxima}</span>
+                                </div>`;
+                    }
+                }
+            });
+
+            $Raca = criarSelectizeObjeto('#Raca', 'buscar-raca', {
+                onChange: function (value) {
+                    currentRaca = this.options[value] || null;
+                },
+                options: [currentLote.raca],
+                render: {
+                    option: function (item, escape) {
+                        return `<div class="selectize-div">
+                                    <span class="selectize-titulo">${item.nome}</span>
+                                </div>`;
+                    }
+                }
+            });
+
+            $Planejamento = criarSelectizeObjeto('#Planejamento', 'buscar-planejamento', {
+                onChange: function (value) {
+                    currentPlanejamento = this.options[value] || null;
+                },
+                options: planejamentos,
+                render: {
+                    option: function (item, escape) {
+
+                        var tipo = item.tipo && !isNaN(item.tipo)
+                            ? `<span class="selectize-subtitulo">Tipo: ${obterNomePastoCurralPorCodigo(item.tipo)}</span>`
+                            : ``;
+
+
+                        return `<div class="selectize-div">
+                                <span class="selectize-titulo">${item.nome}</span>
+                                ${tipo}
+                            </div>`;
+                    }
+                },
+                load: function (query, callback) {
+                    if (query.length < 1) {
+                        callback(planejamentos);
+                    } else {
+                        var listFiltered = planejamentos.filter(x => x.nome.toUpperCase().includes(query.toUpperCase()));
+                        callback(listFiltered);
+                    }                   
+                }
+            });
+
+            $Planejamento[0].selectize.setValue(currentLote.planejamento.id);
+            $Planejamento[0].selectize.focus();
+            $Categoria[0].selectize.setValue(currentLote.categoria.id);
+            $Raca[0].selectize.setValue(currentLote.raca.id);
+
+            function salvarDadosLote() {
+
+                var modelLote = Object.assign(currentLote, $('#form').GetJsonData(), {
+                    raca: currentRaca,
+                    categoria: currentCategoria,
+                    planejamento: currentPlanejamento
+                });
+
+                delete modelLote.movimentacoesNoLote;
+
+                $.postUrlAjax(modelLote, 'editar-lote-entrada/' + modelLote.id, true, function (res) {
+                    MostraAlerta("Lote de Entrada Editado com sucesso!", "Operação realizada", TipoAlerta.Sucesso, $(this), false, false, function () {
+                        $.load();
+                        window.location.href = raizAplicacao + "lotes-de-entrada";
+                    });
+                });
+
+            }
+
+        });
+    </script>
+}

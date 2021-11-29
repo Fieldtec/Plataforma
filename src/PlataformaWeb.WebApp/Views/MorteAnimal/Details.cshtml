@@ -1,0 +1,36 @@
+﻿@model PlataformaWeb.Business.DTO.MorteAnimalDTO;
+@using PlataformaWeb.WebApp.Extensions
+
+@{ ViewData["Title"] = "Data da Morte: " + @Model.DataMorte.ToShortDateString(); }
+
+<div class="row align-items-center justify-content-center">
+    <div class="col-xl-7 col-lg-10">
+        <fieldset class="form h-100" disabled>
+            <legend class="FundoDestaque">Dados do Lançamento</legend>
+            <div class="form-row">                
+                <div class="form-group col-md-4">
+                    <label asp-for="DataMorte" class="control-label">Data da Morte</label>
+                    <input id="DataMorte" class="form-control" value="@Model.DataMorte.ToShortDateString()" />
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group col-md-4">
+                    <label asp-for="LocalOrigem" class=" control-label">Local de Origem</label>
+                    <input value="@Model.LocalOrigem" class="form-control LetraFormulario" />
+                </div>
+                <div class="form-group col-md-4">
+                    <label asp-for="QuantidadeAnimais" class=" control-label">Qtde. Animais</label>
+                    <input value="@Model.QuantidadeAnimais" class="form-control LetraFormulario" />
+                </div>
+                <div class="form-group col-md-4">
+                    <label asp-for="CausaMorte" class=" control-label"></label>
+                    <input value="@Model.CausaMorte" class="form-control LetraFormulario" />
+                </div>
+            </div>
+        </fieldset>
+    </div>
+</div>
+<div class="text-center mt-3">
+    <a autofocus asp-action="Index" class="btn btn-info"><i class="fa fa-times"></i>&nbsp;Voltar</a>
+</div>
+

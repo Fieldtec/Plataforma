@@ -1,0 +1,94 @@
+﻿@model IEnumerable<PlataformaWeb.Business.DTO.LoteSaidaDTO>
+@using PlataformaWeb.Business.Extensions
+@inject PlataformaWeb.Business.Interfaces.IUser AppUser
+@{
+    ViewData["Title"] = "Lotes de Saída Cadastrados";
+}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-content-center align-items-center">       
+        @if (!AppUser.EhAdmin())
+        {
+            <a asp-action="Create" class="btn btn-sm btn-primary text-right"><i class="fa fa-plus"></i>&nbsp;Novo Lote</a>
+        }
+    </div>
+    <div class="card-body">
+        <vc:summary />
+        <div class="table-responsive table-fixed">
+            <table class="table table-hover table-striped">
+                <thead>
+                    <tr role="row">
+                        <th>Número do Lote</th>
+                        <th>Data Embarque</th>
+                        <th>Tipo da Saída</th>
+                        <th>Produtor/Frigorífico Destino</th>
+                        <th class="text-right">Qtd. Animais Prevista</th>
+                        <th class="text-right">Qtd. Animais Embarcados</th>
+                        @if (AppUser.EhAdmin())
+                        {
+                            <th>Propriedade</th>
+                            <th>Técnico</th>
+                        }
+                        else if (AppUser.EhTecnico())
+                        {
+                            <th>Propriedade</th>
+                        }
+                        <th style="width: 150px;" class="text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Count() > 0)
+                    {
+                        @foreach (var entidade in Model)
+                        {
+                    <tr role="row">
+                        <td>@entidade.NumeroLote</td>
+                        <td>@entidade.DataEmbarque.ToShortDateString()</td>
+                        <td>@entidade.TipoSaida.ObterDescricao()</td>
+                        <td>@entidade.ProdutorFrigorificoDestino</td>
+                        <td class="text-right">@entidade.QuantidadeAnimalPrevista</td>
+                        <td class="text-right">@entidade.QuantidadeAnimalEmbarcado</td>
+                        @if (AppUser.EhAdmin())
+                        {
+                            <td>@entidade.NomePropriedade</td>
+                            <td>@entidade.Tecnico</td>
+                        }
+                        else if (AppUser.EhTecnico())
+                        {
+                            <td>@entidade.NomePropriedade</td>
+                        }
+                        <td class="text-center">
+                            @if (!AppUser.EhAdmin())
+                            {
+                                <a asp-action="Edit" asp-route-id="@entidade.Id" title="Editar" class="btn btn-sm btn-warning">
+                                    <span class="fas fa-edit"></span>
+                                </a>
+                                <a asp-action="Details" asp-route-id="@entidade.Id" title="Detalhe" class="btn btn-sm btn-primary">
+                                    <span class="fas fa-search"></span>
+                                </a>
+                                <a asp-action="Delete" asp-route-id="@entidade.Id" title="Remover" class="btn btn-sm btn-danger">
+                                    <span class="fas fa-trash-alt"></span>
+                                </a>
+                            }
+                            else
+                            {
+                                <a asp-action="Details" asp-route-id="@entidade.Id" title="Detalhe" class="btn btn-sm btn-primary">
+                                    <span class="fas fa-search"></span>
+                                </a>
+                            }
+                        </td>
+                    </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr role="row">
+                            <td class="text-center" colspan="8">Nenhum Lote Cadastrado</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <label class="font-weight-bold mt-2">Total de Registros: @Model.Count()</label>
+    </div>
+</div>

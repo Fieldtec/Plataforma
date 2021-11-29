@@ -1,0 +1,139 @@
+﻿@inject PlataformaWeb.Business.Interfaces.IUser AppUser
+@using PlataformaWeb.Business.DTO
+@{
+    ViewData["Title"] = "Fornecimentos de Pasto";
+    var locais = (List<PastoCurralDTO>)ViewBag.pastos;
+}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-content-center align-items-center">
+        @if (!AppUser.EhAdmin())
+        {
+            <a asp-action="Create" class="btn btn-sm btn-primary text-right"><i class="fa fa-plus"></i>&nbsp;Novo</a>
+        }
+    </div>
+    <div class="card-body">
+        <fieldset class="form">
+            <legend class="FundoDestaque">Filtros</legend>
+            <form id="formFiltro" novalidate>
+                <div class="form-row">
+                    <div class="form-group col-3">
+                        <label class="control-label">Data Início</label>
+                        <input id="DataInicio" class="form-control LetraFormulario data" required name="dataInicio" />
+                    </div>
+                    <div class="form-group col-3">
+                        <label class="control-label">Data Final</label>
+                        <input id="DataFinal" class="form-control LetraFormulario data" required name="dataFinal" />
+                    </div>
+                    <div class="form-group col-3">
+                        <label class="control-label">Pasto</label>
+                        <select name="idPasto" class="form-control LetraFormulario numerico">
+                            <option value="" selected>TODOS</option>
+                            @foreach (var local in locais)
+                            {
+                                <option value="@local.Id">@local.Nome</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group col-3">
+                        <button type="button" style="margin-top: 27px" id="btn_buscar" class="btn btn-sm btn-info"><i class="fa fa-search"></i></button>
+                    </div>
+                </div>
+            </form>
+        </fieldset>
+        <div class="mt-4 mb-2 table-responsive table-fixed">
+            <table id="tablePastos" class="table table-hover table-striped">
+                <thead></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <p>
+            <button id="btn_remover_selecionados" type="button" class="btn btn-danger btn-sm"><i class="fa fa-trash"></i>&nbsp;Remover Selecionado(s)</button>
+        </p>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script type="text/javascript">
+        $(document).ready(function () {
+
+            $(document).on('click', '#btn_buscar', function () {
+                if ($('#formFiltro').ValidForm()) {
+                    buscarPrevisoes();
+                }
+            });
+
+            $(document).on('click', '#btn_remover_selecionados', function () {
+                var list = $('#tablePastos').grid('getSelected');
+                if (list.length) {
+                    removerPrevisoes(list);
+                } else {
+                    MostraAlerta("Nenhum registro foi marcado para exclusão", "Atenção", TipoAlerta.Warning, $(this), false, false);
+                    return;
+                }
+            });
+
+            function removerPrevisoes(list) {
+                MostraAlertaConfirma(`Confirma a exclusão dos ${list.length} registro(s) selecionado(s) ?`, 'Confirma?', TipoAlerta.Warning,
+                    $(this), function () {
+                        $.postUrlAjax(list, 'remover-fornecimento-pasto', true, function (res) {
+                            MostraAlerta("Fornecimentos excluídos com sucesso.", "Sucesso", TipoAlerta.Sucesso, $(this), true, true, function () {
+                                buscarPrevisoes();
+                            });
+                        });
+                    });
+            }
+
+            $('#tablePastos').grid({
+                "bSort": false,
+                hasSelectAll: true,
+                columns: [
+                    {
+                        title: "", orderable: false, className: 'text-center', data: function (row) {
+                            return `<input type="checkbox" value="${row.id}" />`;
+                        }
+                    },
+                    {
+                        title: "Data Fornecimento", className: 'text-center',
+                        data: function (row, type, val, meta) {
+                            if (type === "display") {
+                                return FormatarData(row.dataRealizado);
+                            }
+                            return row;
+                        }
+                    },
+                    { title: "Suplemento", data: "suplemento" },
+                    { title: "Pasto", data: "pasto" },
+                    { title: "Qtde. Animais", data: "quantidadeAnimais", className: 'text-right' },
+                    {
+                        title: "Realizado KG", className: 'text-right',
+                        data: function (row) {
+                            return formataMoeda(row.realizadoKg, 2, ',', '.')
+                        },
+                    },
+                    {
+                        title: "Realizado Saco", className: 'text-right',
+                        data: function (row) {
+                            return formataMoeda(row.realizadoSaco, 2, ',', '.');
+                        }
+                    },
+                ]
+            });
+
+            function buscarPrevisoes() {
+                var jsonData = $('#formFiltro').GetJsonData();
+
+                if ($('#DataInicio').compareDate($('#DataFinal').val()) > 0) {
+                    MostraAlerta("Data Inicial não pode ser maior do que a Data Final", "Atenção", TipoAlerta.Warning, $('#DataFinal'), true, true);
+                    return;
+                }
+
+                $.postUrlAjax(jsonData, 'buscar-fornecimento-pasto', true, function (res) {
+                    $('#tablePastos').grid("setData", res);
+                });
+
+            }
+        });
+    </script>
+}

@@ -1,0 +1,79 @@
+﻿@model ProdutorParceiroViewModel;
+@using PlataformaWeb.WebApp.Extensions
+
+@{ ViewData["Title"] = "Editando: " + Model.Nome; }
+
+<form id="form" asp-action="Edit" enctype="multipart/form-data" novalidate>
+    <div class="row align-items-center justify-content-center">
+        <div class="col-xl-7 col-lg-11">
+            <vc:summary></vc:summary>
+        </div>
+        <div class="col-xl-7 col-lg-11">
+            <fieldset class="form h-100">
+                <legend class="FundoDestaque">Dados do Produtor Parceiro</legend>
+                <div class="form-row">
+                    <div class="form-group col-lg-12">
+                        <label asp-for="Nome" class="control-label"></label>
+                        <input autofocus asp-for="Nome" class="form-control" required />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                        <label asp-for="CpfCnpj" class=" control-label"></label>
+                        <input asp-for="CpfCnpj" class="form-control cnpjCpf" />
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label for="IdPropriedadeParceira" class="control-label">Propriedade Parceira&nbsp;<i data-toggle="tooltip" data-placement="top" title="Digite parte do nome para fazer a busca das propriedades parceiras cadastradas" class="far fa-question-circle text-info helper"></i></label>
+                        <select asp-for="IdPropriedadeParceira" class="form-control LetraFormulario" required></select>
+                    </div>
+                </div>
+            </fieldset>
+        </div>
+    </div>
+    <div class="text-center mt-3">
+        <button type="submit" class="btn btn-success"><i class="fa fa-save"></i>&nbsp;Salvar</button>
+        <a asp-action="Index" class="btn btn-info"><i class="fa fa-times"></i>&nbsp;Voltar</a>
+    </div>
+</form>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script src="~/lib/selectize.js/js/standalone/selectize.min.js"></script>
+    <link href="~/lib/selectize.js/css/selectize.bootstrap3.min.css" rel="stylesheet" />
+    <script>
+        $(document).ready(function () {
+
+            var propriedades = @Html.Raw(Json.Serialize(ViewBag.propriedades));
+            var produtor = @Html.Raw(Json.Serialize(Model.PropriedadeParceira)) || {};
+
+            $('#form').SubmitForm();
+
+            var $IdPropriedadeParceira = $('#IdPropriedadeParceira').selectize({
+                valueField: 'id',
+                labelField: 'nome',
+                searchField: 'nome',
+                create: false,
+                options: propriedades,
+                render: {
+                    option: function (item, escape) {
+                        return `<div class="selectize-div">
+                                                  <span class="selectize-titulo">${item.nome}</span>
+                                                  <span class="selectize-subtitulo">${item.cidade} - ${item.uf}</span>
+                                                </div>`;
+                    }
+                },
+                load: function (query, callback) {
+                    if (query.length < 1) {
+                        callback(propriedades);
+                    } else {
+                        var list = propriedades.filter(x => x.nome.toUpperCase().includes(query.toUpperCase()));
+                        callback(list);
+                    }
+                }
+            });
+
+            $IdPropriedadeParceira[0].selectize.setValue(@Model.IdPropriedadeParceira);
+
+        });
+    </script>
+}

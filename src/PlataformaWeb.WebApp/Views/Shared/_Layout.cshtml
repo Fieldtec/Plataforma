@@ -1,0 +1,355 @@
+﻿@using PlataformaWeb.WebApp.Extensions
+@inject PlataformaWeb.Business.Interfaces.IUser AppUser
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - PlataformaField</title>
+    <script type="text/javascript" src="@Url.Action("CaminhoRaiz", "Home")"></script>
+    <link rel="icon" href="@Url.Content("~/favicon.png")">
+    <link href="~/lib/jqueryui/jquery-ui.min.css" rel="stylesheet" />
+    <link href="~/lib/font-awesome/css/all.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css?family=Tahoma:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
+    <environment names="Development">
+        <link href="~/css/sb-admin-2.css" rel="stylesheet" asp-append-version="true" />
+        <link href="~/css/site.css" rel="stylesheet" asp-append-version="true" />
+    </environment>
+    <environment names="Production,Staging">
+        <link href="~/css/sb-admin-2.min.css" rel="stylesheet" asp-append-version="true" />
+        <link href="~/css/site.min.css" rel="stylesheet" asp-append-version="true" />
+    </environment>
+    <link href="~/lib/datatables/css/jquery.dataTables.min.css" rel="stylesheet" asp-append-version="true" />
+</head>
+<body id="page-top">
+
+    <!-- Page Wrapper -->
+    <div id="wrapper">
+
+        <!-- Sidebar -->
+        <ul class="navbar-nav bg-dark sidebar sidebar-dark accordion" id="accordionSidebar">
+
+            <!-- Sidebar - Brand -->
+            <a class="sidebar-brand d-flex align-items-center justify-content-center" href="@Url.Content("~/")">
+                <div class="sidebar-brand-icon">
+                    <img src="~/images/FieldPlataforma-XS.png" />
+                </div>
+                <div style="font-size: 0.8em" class="sidebar-brand-text mx-3">PlataformaField</div>
+            </a>
+
+            <!-- Divider -->
+            <hr class="sidebar-divider my-0">
+
+            <!-- Nav Item - Dashboard -->
+            <li class="nav-item">
+                <a class="nav-link" href="@Url.Content("~/")">
+                    <i class="fas fa-fw fa-home"></i>
+                    <span>Home</span>
+                </a>
+            </li>
+
+            <!-- Divider -->
+            <hr class="sidebar-divider">
+
+            <!-- Heading -->
+            @*<div class="sidebar-heading">
+                    Cadastros
+                </div>*@
+
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseCadastrosGerais" aria-expanded="true" aria-controls="collapseCadastrosGerais">
+                    <i class="fas fa-fw fa-user-friends"></i>
+                    <span>Cadastros Gerais</span>
+                </a>
+                <div id="collapseCadastrosGerais" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Cadastros Gerais:</h6>
+                        @if (AppUser.EhAdmin())
+                        {
+                            <a class="collapse-item" href="@Url.Content("~/tecnicos")"><i class="fas fa-fw fa-user-tie"></i>&nbsp;Técnicos</a>
+                        }
+
+                        @if (!AppUser.EhCliente() && !AppUser.EhUsuarioDoCliente())
+                        {
+                            <a class="collapse-item" href="@Url.Content("~/clientes")"><i class="fas fa-fw fa-user-friends"></i>&nbsp;Clientes</a>
+                        }
+
+                        @if ((!AppUser.EhUsuarioDoCliente() && AppUser.ObterIdCliente() != 0))
+                        {
+                            <a class="collapse-item" href="@Url.Content("~/usuarios")"><i class="fas fa-fw fa-user"></i>&nbsp;Usuários</a>
+                        }
+
+                        @if (AppUser.ObterIdCliente() > 0)
+                        {
+                            <a class="collapse-item" href="@Url.Content("~/currais-pastos")"><i class="fas fa-fw fa-hotel"></i>&nbsp;Pastos/Currais</a>
+                            <a class="collapse-item" href="@Url.Content("~/categorias")"><i class="fas fa-fw fa-bezier-curve"></i>&nbsp;Categorias</a>
+                            <a class="collapse-item" href="@Url.Content("~/racas")"><i class="fab fa-fx fa-fedora"></i>&nbsp;Raças</a>
+                            <a class="collapse-item" href="@Url.Content("~/propriedades-parceiras")"><i class="fas fa-fw fa-city"></i>&nbsp;Propriedades Parceiras</a>
+                            <a class="collapse-item" href="@Url.Content("~/produtores-parceiros")"><i class="fas fa-fw fa-users"></i>&nbsp;Produtores Parceiros</a>
+                        }
+
+                    </div>
+                </div>
+            </li>
+
+            @if (AppUser.ObterIdCliente() > 0)
+            {
+                <li class="nav-item">
+                    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseNutricao" aria-expanded="true" aria-controls="collapseNutricao">
+                        <i class="fas fa-fw fa-feather"></i>
+                        <span>Nutrição</span>
+                    </a>
+                    <div id="collapseNutricao" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
+                        <div class="bg-white py-2 collapse-inner rounded">
+                            <h6 class="collapse-header">Nutrição:</h6>
+                            <a class="collapse-item" href="@Url.Content("~/fornecedores-de-insumo")"><i class="fas fa-fw fa-id-card"></i>&nbsp;Fornecedores</a>
+                            <a class="collapse-item" href="@Url.Content("~/insumos")"><i class="fas fa-fw fa-feather-alt"></i>&nbsp;Insumos</a>
+                            <a class="collapse-item" href="@Url.Content("~/suplementos")"><i class="fas fa-fw fa-feather"></i>&nbsp;Suplementos</a>
+                            <a class="collapse-item" href="@Url.Content("~/racoes")"><i class="fas fa-fw fa-feather"></i>&nbsp;Rações</a>
+                            <a class="collapse-item" href="@Url.Content("~/planejamentos")"><i class="fas fa-fw fa-file-alt"></i>&nbsp;Plan. Nutricionais</a>
+                            <a class="collapse-item" href="@Url.Content("~/leituras-de-cocho")"><i class="fas fa-fw fa-file-alt"></i>&nbsp;Leitura de Cocho</a>
+                            <a class="collapse-item" href="@Url.Content("~/fornecimento-racao-confinamento")"><i class="fas fa-fw fa-file-alt"></i>&nbsp;Forn. de Ração Confinamento</a>
+                            <a class="collapse-item" href="@Url.Content("~/gerenciar-planejamentos")"><i class="fas fa-fw fa-file-alt"></i>&nbsp;Gerenciar Planejamentos</a>
+                            <a class="collapse-item" href="@Url.Content("~/previsoes-fornecimentos-pasto")"><i class="fas fa-fw fa-file-alt"></i>&nbsp;Prev. Fornecimentos Pasto</a>
+                            <a class="collapse-item" href="@Url.Content("~/fornecimentos-pasto")"><i class="fas fa-fw fa-file-alt"></i>&nbsp;Fornecimentos Pasto</a>
+                        </div>
+
+                    </div>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseMovimentacao" aria-expanded="true" aria-controls="collapseMovimentacao">
+                        <i class="fas fa-fw fa-paste"></i>
+                        <span>Movimentação Animal</span>
+                    </a>
+                    <div id="collapseMovimentacao" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
+                        <div class="bg-white py-2 collapse-inner rounded">
+                            <h6 class="collapse-header">Movimentação Animal:</h6>
+                            <a class="collapse-item" href="@Url.Content("~/lotes-de-entrada")"><i class="fas fa-fw fa-paste"></i>&nbsp;Entrada de Animais</a>
+                            <a class="collapse-item" href="@Url.Content("~/lotes-de-saida")"><i class="fas fa-fw fa-paste"></i>&nbsp;Lotes de Saída</a>
+                            <a class="collapse-item" href="@Url.Content("~/mortes-animais")"><i class="fas fa-fw fa-paste"></i>&nbsp;Mortes de Animais</a>
+                            <a class="collapse-item" href="@Url.Content("~/movimentacoes-entre-locais")"><i class="fas fa-fw fa-paste"></i>&nbsp;Mov. Lote Entre Locais</a>
+                            <a class="collapse-item" href="@Url.Content("~/movimentacoes-animal")"><i class="fas fa-fw fa-paste"></i>&nbsp;Mov. Animal Entre Lotes</a>
+                            <a class="collapse-item" href="@Url.Content("~/saidas-animais")"><i class="fas fa-fw fa-paste"></i>&nbsp;Saídas de Animais</a>
+                        </div>
+                    </div>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseAux" aria-expanded="true" aria-controls="collapseAux">
+                        <i class="fas fa-fw fa-file-alt"></i>
+                        <span>Auxiliares</span>
+                    </a>
+                    <div id="collapseAux" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
+                        <div class="bg-white py-2 collapse-inner rounded">
+                            <h6 class="collapse-header">Auxiliares:</h6>
+                            <a class="collapse-item" href="@Url.Content("~/fases-do-ano")"><i class="fas fa-fw fa-file-alt"></i>&nbsp;Fases do Ano</a>
+                            <a class="collapse-item" href="@Url.Content("~/causas-da-morte")"><i class="fas fa-fw fa-file-alt"></i>&nbsp;Causas de Morte</a>
+                            <a class="collapse-item" href="@Url.Content("~/motivo-movimentacoes")"><i class="fas fa-fw fa-file-alt"></i>&nbsp;Motivo Movimentações</a>
+                            <a class="collapse-item" href="@Url.Content("~/frigorificos")"><i class="fas fa-fw fa-file-alt"></i>&nbsp;Frigoríficos</a>
+                            <a class="collapse-item" href="@Url.Content("~/notas-leitura-cocho")"><i class="fas fa-fw fa-file-alt"></i>&nbsp;Config. Nota Leitura de Cocho</a>
+
+                        </div>
+                    </div>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseRel" aria-expanded="true" aria-controls="collapseRel">
+                        <i class="fas fa-fw fa-print"></i>
+                        <span>Relatórios</span>
+                    </a>
+                    <div id="collapseRel" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
+                        <div class="bg-white py-2 collapse-inner rounded">
+                            <h6 class="collapse-header">Relatórios:</h6>
+                            <a data-titulo="Relatório de Animais Ativos a Pasto" data-relatorio="ListaAnimal" class="link-relatorio collapse-item" href="#"><i class="fas fa-fw fa-print"></i>&nbsp;Animais Ativos a Pasto</a>
+                        </div>
+                    </div>
+                </li>
+            }
+
+            <!-- Divider -->
+            <hr class="sidebar-divider d-none d-md-block">
+
+            <!-- Sidebar Toggler (Sidebar) -->
+            <div class="text-center d-none d-md-inline">
+                <button class="rounded-circle border-0" id="sidebarToggle"></button>
+            </div>
+
+        </ul>
+        <!-- End of Sidebar -->
+        <!-- Content Wrapper -->
+        <div id="content-wrapper" class="d-flex flex-column">
+
+            <!-- Main Content -->
+            <div id="content">
+
+                <!-- Topbar -->
+                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
+
+                    <!-- Sidebar Toggle (Topbar) -->
+                    <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
+                        <i class="fa fa-bars"></i>
+                    </button>
+
+                    <div class="d-sm-flex align-items-center align-self-center">
+                        <h1 class="align-items-end h5 mb-0 text-gray-800">@ViewData["Title"]</h1>
+                    </div>
+
+                    <!-- Topbar Navbar -->
+                    <ul class="navbar-nav ml-auto">
+                        @if (AppUser.EhTecnico() || AppUser.EhAdmin())
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" id="escolherClienteModal" role="button">
+                                    <div>
+                                        @if (AppUser.ObterIdCliente() > 0)
+                                        {
+                                            <div class="d-none d-lg-block text-gray-400 small">Vizualizando dados:</div>
+                                            <span class="d-none d-lg-inline text-gray-600 font-weight-bold small">@AppUser.ObterNomeProprietario()</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="d-none d-lg-inline text-gray-600 font-weight-bold small">SELECIONAR CLIENTE</span>
+                                        }
+                                    </div>
+                                </a>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" role="button">
+                                    <div>
+                                        <div class="d-none d-lg-block text-gray-400 small">Propriedade:</div>
+                                        <span class="d-none d-lg-inline text-gray-600 font-weight-bold small">@AppUser.ObterNomePropriedade()</span>
+                                    </div>
+                                </a>
+                            </li>
+                        }
+
+
+                        <div class="topbar-divider d-none d-sm-block"></div>
+                        <!-- Nav Item - User Information -->
+                        <li class="nav-item dropdown no-arrow">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <div>
+                                    <span class="mr-3 d-none d-lg-inline text-gray-600 font-weight-bold small">@AppUser.Nome</span>
+                                    <div class="mr-3 d-none d-lg-block text-gray-400 small">@AppUser.ObterEmail()</div>
+                                </div>
+                                <img class="img-profile rounded-circle" src="~/images/usericon.png">
+                            </a>
+                            <!-- Dropdown - User Information -->
+                            <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in" aria-labelledby="userDropdown">
+                                <a class="dropdown-item" href="#" data-toggle="modal" data-target="#logoutModal">
+                                    <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
+                                    Sair
+                                </a>
+                            </div>
+                        </li>
+
+                    </ul>
+
+                </nav>
+                <!-- End of Topbar -->
+                <!-- Begin Page Content -->
+                <div class="container-fluid">
+                    @RenderBody()
+                </div>
+                <!-- /.container-fluid -->
+
+            </div>
+            <!-- End of Main Content -->
+            <!-- Footer -->
+            <footer class="sticky-footer bg-white">
+                <div class="container my-auto">
+                    <div class="copyright text-center my-auto">
+                        <span>Copyright &copy; PlataformaField @DateTime.Now.Year</span>
+                    </div>
+                </div>
+            </footer>
+            <!-- End of Footer -->
+
+        </div>
+        <!-- End of Content Wrapper -->
+
+    </div>
+    <!-- End of Page Wrapper -->
+    <!-- Scroll to Top Button-->
+    <a class="scroll-to-top rounded" href="#page-top">
+        <i class="fas fa-angle-up"></i>
+    </a>
+
+    <!-- Logout Modal-->
+    <div class="modal fade" id="logoutModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Confirma a saída?</h5>
+                    <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </div>
+                <div class="modal-body">Clique em "Sair" abaixo para terminar a sessão</div>
+                <div class="modal-footer">
+                    <a autofocus class="btn btn-primary" href="@Url.Content("~/sair")">Sair</a>
+                    <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="relatorioModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="tituloRelatorioModal"></h5>
+                    <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </div>
+                <form id="formFiltrosRelatorio" enctype="multipart/form-data" novalidate>
+                    <div class="modal-body">
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-sm btn-danger no_focus" type="button" data-dismiss="modal"><i class="fa fa-times"></i>&nbsp;Fechar</button>
+                        <button class="btn btn-sm btn-success" id="btnImprimirRelatorio" type="button"><i class="fa fa-print"></i>&nbsp;Imprimir</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+    @if (AppUser.EhTecnico() || AppUser.EhAdmin())
+    {
+        await Html.RenderPartialAsync("_SelecionarClienteModal");
+    }
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jqueryui/jquery-ui.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/lib/jquery-easing/jquery.easing.min.js"></script>
+    <script src="~/js/sb-admin-2.min.js" asp-append-version="true"></script>
+    <script src="~/lib/datatables/js/jquery.dataTables.min.js"></script>
+    <environment names="Development">
+        <script src="~/js/grid.js" asp-append-version="true"></script>
+        <script src="~/js/utils.js" asp-append-version="true"></script>
+        <script src="~/js/relatorio.js" asp-append-version="true"></script>
+        @if (AppUser.EhTecnico() || AppUser.EhAdmin())
+        {
+            <script src="~/js/site.js" asp-append-version="true"></script>
+        }
+    </environment>
+    <environment names="Production,Staging">
+        <script src="~/js/grid.min.js" asp-append-version="true"></script>
+        <script src="~/js/utils.min.js" asp-append-version="true"></script>
+        <script src="~/js/relatorio.min.js" asp-append-version="true"></script>
+        @if (AppUser.EhTecnico() || AppUser.EhAdmin())
+        {
+            <script src="~/js/site.min.js" asp-append-version="true"></script>
+        }
+    </environment>    
+    @RenderSection("Scripts", required: false)
+    @RenderSection("ScriptsRelatorio", required: false)
+    <vc:response></vc:response>
+</body>
+</html>

@@ -1,0 +1,161 @@
+﻿@using PlataformaWeb.WebApp.Extensions
+
+@{ ViewData["Title"] = "Gerar Prev. Fornecimento Pastos"; }
+
+<div class="row align-items-center justify-content-center">
+    <div class="col-xl-7 col-lg-10">
+        <vc:summary></vc:summary>
+    </div>
+    <div class="col-xl-7 col-lg-10">
+        <form id="formGeracao" novalidate>           
+            <fieldset class="form">
+                <legend class="FundoDestaque">Dados para geração</legend>
+                <div class="form-row">
+                    <div class="form-group col-lg-6">
+                        <label for="DataInicio" class="control-label">Data Início</label>
+                        <input id="DataInicio" class="form-control LetraFormulario data" required value="@DateTime.Now.Date.ToShortDateString()" name="dataInicial" />
+                    </div>
+                    <div class="form-group col-lg-6">
+                        <label for="QtdSemanas" class="control-label">Qtd. Semanas</label>
+                        <input id="QtdSemanas" class="form-control LetraFormulario inteiro" required name="quantidadeSemanas" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-12">
+                        <fieldset class="form">
+                            <legend class="FundoDestaque" style="color: #858796">Ignorar dias da semana</legend>
+                            <div id="divDias" class="form-row justify-content-between">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input boolean" type="checkbox" id="cbxSegunda" value="segunda" name="segunda">
+                                    <label class="form-check-label" for="cbxSegunda">Segunda</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input boolean" type="checkbox" id="cbxTerca" value="terca" name="terca">
+                                    <label class="form-check-label" for="cbxTerca">Terça</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input boolean" type="checkbox" id="cbxQuarta" value="quarta" name="quarta">
+                                    <label class="form-check-label" for="cbxQuarta">Quarta</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input boolean" type="checkbox" id="cbxQuinta" value="quinta" name="quinta">
+                                    <label class="form-check-label" for="cbxQuinta">Quinta</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input boolean" type="checkbox" id="cbxSexta" value="sexta" name="sexta">
+                                    <label class="form-check-label" for="cbxSexta">Sexta</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input boolean" type="checkbox" id="cbxSabado" value="sabado" name="sabado">
+                                    <label class="form-check-label" for="cbxSabado">Sábado</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input boolean" type="checkbox" id="cbxDomingo" value="domingo" name="domingo">
+                                    <label class="form-check-label" for="cbxDomingo">Domingo</label>
+                                </div>
+                            </div>
+                        </fieldset>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-lg-12">
+                        <label for="IdSuplemento" class="control-label">Suplemento</label>
+                        <select id="IdSuplemento" name="idSuplemento" class="form-control LetraFormulario inteiro" required></select>
+                    </div>
+                </div>
+            </fieldset>
+        </form>
+    </div>
+</div>
+<div class="text-center mt-3">
+    <button id="btn_salvar" type="submit" class="btn btn-success"><i class="fa fa-save"></i>&nbsp;Gerar</button>
+    <a asp-action="Index" class="btn btn-info"><i class="fa fa-times"></i>&nbsp;Voltar</a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script src="~/lib/selectize.js/js/standalone/selectize.min.js"></script>
+    <link href="~/lib/selectize.js/css/selectize.bootstrap3.min.css" rel="stylesheet" />
+    <script type="text/javascript">
+
+    var $IdSuplemento;
+
+    $(document).ready(function () {
+
+        var suplementos = @Html.Raw(Json.Serialize(ViewBag.suplementos));
+        var configuracao = @Html.Raw(Json.Serialize(ViewBag.configuracao));
+
+        if (configuracao) {
+            for (var i in configuracao) {
+                $('#divDias').find(`input[name="${i}"]`).prop('checked', configuracao[i]);
+            }
+        }
+
+        $IdSuplemento = criarSelectizeObjeto('#IdSuplemento', 'buscar-suplemento', {
+            options: suplementos,
+            onChange: function (value) {
+                currentSuplemento = this.options[value] || null;
+            },
+            render: {
+                option: function (item, escape) {
+                    var nomeFornecedor = item.nomeFornecedorInsumo || " - ";
+                    return `<div class="selectize-div">
+                                <span class="selectize-titulo">${item.nome}</span>
+                                <span class="selectize-subtitulo">Fornecedor: ${nomeFornecedor}</span>
+                            </div>`;
+                }
+            }
+        }, suplementos);
+
+        $(document).on('click', '#btn_salvar', function () {
+            var valid = $('#formGeracao').ValidForm();
+            if (valid) {
+                gerarPrevisoes();
+            }
+        });
+
+        setTimeout(function () {
+            $('#DataInicio').focus();
+        }, 100)
+
+        function gerarPrevisoes() {
+            var jsonData = $('#formGeracao').GetJsonData();
+
+            var fnGerar = function () {
+                $.postUrlAjax(jsonData, 'gerar-fornecimento-pasto', true, function (res) {
+                    MostraAlerta("Informações geradas com sucesso.", "Sucesso", TipoAlerta.Sucesso, $(this), false, false, function () {
+                        window.location.href = raizAplicacao + 'previsoes-fornecimentos-pasto';
+                    });
+                });
+            }
+
+            fnGerar();
+
+            //$.postUrlAjax(jsonData.dataInicial, 'existe-previsto-fornecimento-pasto', true, function (res) {
+            //    fnGerar();
+            //});
+        }
+
+
+
+        function criarSelectizeObjeto(id, urlBusca, options, list) {
+            return $(id).selectize($.extend(true, {
+                valueField: 'id',
+                labelField: 'nome',
+                searchField: 'nome',
+                create: false,
+                load: function (query, callback) {
+                    if (query.length < 1) {
+                        callback(list);
+                    } else {
+                        var listFilter = list.filter(x => x.nome.toUpperCase().includes(query.toUpperCase()));
+                        callback(listFilter);
+                    }
+                }
+            }, options));
+        }
+
+    });
+
+    </script>
+}

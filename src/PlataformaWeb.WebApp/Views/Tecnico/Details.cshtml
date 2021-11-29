@@ -1,0 +1,51 @@
+﻿@model TecnicoViewModel
+
+@{ ViewData["Title"] = "Detalhe do Técnico"; }
+
+<div class="row align-items-center justify-content-center">
+    <div class="col-xl-6 col-lg-8">
+        <fieldset class="form">
+            <legend class="FundoDestaque">Dados Pessoais</legend>
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label asp-for="Nome" class="control-label"></label>
+                    <input asp-for="Nome" class="form-control" required disabled />
+                </div>
+                <div class="form-group col-md-6">
+                    <label asp-for="Email" class="control-label"></label>
+                    <input asp-for="Email" class="form-control" required type="email" disabled />
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label asp-for="Usuario" class="control-label"></label>
+                    <input asp-for="Usuario" class="form-control" disabled />
+                </div>
+
+                <div class="form-group col-md-6">
+                    <label asp-for="Telefone" class="control-label"></label>
+                    <input asp-for="Telefone" class="form-control" disabled />
+                </div>
+            </div>
+        </fieldset>
+    </div>
+    <div class="col-lg-4">
+        <fieldset class="form">
+            <legend class="FundoDestaque">Dados da Licença</legend>
+            <div class="form-row">
+                <div class="form-group col-lg-6">
+                    <label asp-for="QtdeLicenca" class="control-label"></label>
+                    <input asp-for="QtdeLicenca" class="form-control inteiro" disabled />
+                </div>
+                <div class="form-group col-lg-6">
+                    <label asp-for="DataAquisicao" class="control-label"></label>
+                    <input asp-for="DataAquisicao" type="text" class="form-control data" asp-format="{0:dd/MM/yyyy}" disabled />                    
+                </div>
+            </div>
+        </fieldset>
+    </div>
+</div>
+<div class="text-center mt-3">
+    <a autofocus asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning"><i class="fa fa-edit"></i>&nbsp;Editar</a>
+    <a asp-action="Index" class="btn btn-info"><i class="fa fa-times"></i>&nbsp;Voltar</a>
+</div>

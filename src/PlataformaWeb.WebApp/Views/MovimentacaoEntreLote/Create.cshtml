@@ -1,0 +1,327 @@
+﻿@model MovimentacaoEntreLoteViewModel;
+@using PlataformaWeb.Business.DTO;
+@using PlataformaWeb.WebApp.Extensions;
+
+@{
+    ViewData["Title"] = "Nova Movimentação";
+    List<MotivoMovimentacaoDTO> motivos = ViewBag.motivos;
+    List<SelectListItem> listItem = new List<SelectListItem>();
+    listItem.Add(new SelectListItem("SELECIONE", "", true));
+    listItem.AddRange(motivos.Select(x => new SelectListItem(x.Nome, x.Id.ToString(), false)));
+}
+
+<form id="form" enctype="multipart/form-data" novalidate>
+    <div class="row align-items-center justify-content-center">
+        <div class="col-xl-7 col-lg-10">
+            <vc:summary></vc:summary>
+        </div>
+        <div class="col-xl-7 col-lg-10">
+            <fieldset class="form h-100">
+                <legend class="FundoDestaque">Dados da Movimentação</legend>
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label for="TipoMovimentacao" class="control-label">Tipo da Movimentação</label>
+                        <select autofocus id="TipoMovimentacao" class="form-control LetraFormulario numerico" asp-items="this.ObterSelectTipoMovimentacaoEntrePastos()" required></select>
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="DataMovimentacao" class="control-label">Data da Movimentação</label>
+                        <input id="DataMovimentacao" name="dataMovimentacao" required type="text" class="form-control data" />
+
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label asp-for="LocalOrigem" class=" control-label">Local de Origem</label>
+                        <select id="LocalOrigem" class="form-control LetraFormulario" required></select>
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="QuantidadeAnimais" class=" control-label">Total de Animais</label>
+                        <input id="QuantidadeAnimais" disabled class="form-control decimal" />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="DataEntrada" class=" control-label">Data Entrada</label>
+                        <input id="DataEntrada" disabled class="form-control data" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label asp-for="LocalDestino" class=" control-label">Local de Destino</label>
+                        <select id="LocalDestino" class="form-control LetraFormulario" required></select>
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="Motivo" class="LetraFormulario control-label">Motivo&nbsp;<i data-toggle="tooltip" data-placement="top" title="Selecione o motivo da movimentação ou clique no botão para cadastrar um novo" class="far fa-question-circle text-info helper"></i></label>
+                        <div class="input-group">
+                            <select asp-for="Motivo" name="motivo" asp-items="@listItem" class="form-control LetraFormulario numerico" required></select>
+                            <div class="input-group-append">
+                                <button id="btn_abrir_modal_motivo" class="btn btn-sm btn-primary no_focus" type="button"><i class="fa fa-plus"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </fieldset>
+        </div>
+    </div>
+    <div class="text-center mt-3">
+        <button id="btn_salvar" type="button" class="btn btn-success"><i class="fa fa-save"></i>&nbsp;Salvar</button>
+        <a asp-action="Index" class="btn btn-info"><i class="fa fa-times"></i>&nbsp;Voltar</a>
+    </div>
+</form>
+
+@section Scripts {
+    <script src="~/lib/selectize.js/js/standalone/selectize.min.js"></script>
+    <link href="~/lib/selectize.js/css/selectize.bootstrap3.min.css" rel="stylesheet" />
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        var listMotivos = @Html.Raw(Json.Serialize(motivos));
+        var $LocalOrigem, $LocalDestino;
+        var currentLocalOrigem, currentLocalDestino, currentLote, currentTipoMovimentacao = null;
+
+        var locaisOrigem = [];
+        var locaisDestino = [];
+
+        $(document).ready(function () {
+
+            $(document).on('click', '#btn_salvar', function () {
+                var isValid = $('#form').ValidForm();
+                if (isValid) {
+                    salvarDados();
+                }
+            });
+
+            $(document).on('change', '#TipoMovimentacao', function () {
+                currentTipoMovimentacao = $(this).getValue();
+                limparLocais();
+                buscarLocais(1);
+            });
+
+            $(document).on('click', '#btn_abrir_modal_motivo', function () {
+                initModalMotivoMovimentacao(callbackMotivoCadastrado);
+            });
+
+            $LocalOrigem = criarSelectizeObjeto('#LocalOrigem', 'buscar-curral-pasto', {
+                onChange: function (value) {
+                    currentLocalOrigem = this.options[value] || null;
+                    if (currentLocalOrigem) {
+                        buscarLocalAtivo(currentLocalOrigem, callbackLocalOrigem);
+                        return;
+                    }
+
+                    $('#QuantidadeAnimais, #DataEntrada').val('');
+
+                },
+                render: {
+                    option: function (item, escape) {
+                        return `<div class="selectize-div">
+                                    <span class="selectize-titulo">${item.nome}</span>
+                                    <span class="selectize-subtitulo">Capacidade: ${item.capacidade} - Lotação: ${item.lotacao}</span>
+                                </div>`;
+                    }
+                },
+                load: function (query, callback) {
+                    if (query.length < 1) {
+                        callback(locaisOrigem);
+                    } else {
+                        callback(locaisOrigem.filter(x => x.nome.toUpperCase.includes(query.toUpperCase())));
+                    }
+                }
+            });
+
+            $LocalDestino = criarSelectizeObjeto('#LocalDestino', 'buscar-curral-pasto', {
+                onChange: function (value) {
+                    currentLocalDestino = this.options[value] || null;
+                    if (currentLocalDestino) {
+                        buscarLocalAtivo(currentLocalDestino, callbackLocalDestino);
+                    }
+                },
+                render: {
+                    option: function (item, escape) {
+                        return `<div class="selectize-div">
+                                    <span class="selectize-titulo">${item.nome}</span>
+                                    <span class="selectize-subtitulo">Capacidade: ${item.capacidade} - Lotação: ${item.lotacao}</span>
+                                </div>`;
+                    }
+                },
+                load: function (query, callback) {
+                    if (query.length < 1) {
+                        callback(locaisDestino);
+                    } else {
+                        callback(locaisDestino.filter(x => x.nome.toUpperCase.includes(query.toUpperCase())));
+                    }
+                }
+            });
+
+            function limparLocais() {
+                $LocalDestino[0].selectize.setValue(null);
+                $LocalDestino[0].selectize.clearOptions();
+                $LocalDestino[0].selectize.refreshOptions();
+                $LocalOrigem[0].selectize.setValue(null);
+                $LocalOrigem[0].selectize.clearOptions();
+                $LocalOrigem[0].selectize.refreshOptions();
+                currentLocalOrigem = null;
+                currentLocalDestino = null;
+                $('#QuantidadeAnimais, #DataEntrada').val('');
+            }
+
+            // Lotacao: 1 - Todos, 2 - Com lotação, 3 - sem lotação
+            function buscarLocais(lotacao) {
+                if (!currentTipoMovimentacao) return;
+
+                $.getUrlAjax(null, `buscar-curral-pasto?tipo=${currentTipoMovimentacao}&lotacao=${lotacao}`, true, function (res) {
+                    locaisOrigem = res.list.filter(x => x.lotacao > 0);
+                    locaisDestino = res.list.filter(x => x.lotacao === null || x.lotacao === 0);
+
+                    $LocalDestino[0].selectize.setValue(null);
+                    $LocalDestino[0].selectize.clearOptions();
+                    $LocalDestino[0].selectize.refreshOptions();
+                    $LocalDestino[0].selectize.addOption(locaisDestino);
+
+                    $LocalOrigem[0].selectize.setValue(null);
+                    $LocalOrigem[0].selectize.clearOptions();
+                    $LocalOrigem[0].selectize.refreshOptions();
+                    $LocalOrigem[0].selectize.addOption(locaisOrigem);
+
+                });
+
+            }
+
+            function callbackLocalDestino(res) {
+                if (res.planejamentoAtivo) {
+                    MostraAlerta(`Local Destino possui Lote Ativo. Só é possível essa trânsferência em Locais que não possuem lotes ativos!`,
+                        "Atenção", TipoAlerta.Warning, $(this), false, false, function () {
+                            $LocalDestino[0].selectize.setValue(null);
+                            //$LocalDestino[0].selectize.clearOptions();
+                            //$LocalDestino[0].selectize.refreshOptions();
+                            $LocalDestino[0].selectize.focus();
+                            currentLocalDestino = null;
+                        });
+                }
+            }
+
+            function callbackLocalOrigem(res) {
+                if (!res.planejamentoAtivo) {
+                    MostraAlerta(`Local não possui Lote Ativo. Escolha outro Local!`,
+                        "Atenção", TipoAlerta.Warning, $(this), false, false, function () {
+                            $LocalOrigem[0].selectize.setValue(null);
+                            //$LocalOrigem[0].selectize.clearOptions();
+                            //$LocalOrigem[0].selectize.refreshOptions();
+                            $LocalOrigem[0].selectize.focus();
+                            currentLocalOrigem = null;
+                    });
+
+                    currentLote = null;
+
+                    return;
+                }
+
+                $('#QuantidadeAnimais').val(res.lote[0].quantidadeAnimais);
+                $('#DataEntrada').val(FormatarData(res.lote[0].dataEntrada));
+
+                currentLote = res.lote[0];
+
+                //console.log(res);
+            }
+
+            function buscarLocalAtivo(local, fnCallback) {
+
+                if (!local) return;
+
+                $.getUrlAjax(null, 'buscar-lote-ativo-local?idLocal=' + local.id, true, function (res) {
+                    fnCallback(res);
+                });
+            }
+
+            function obterObjetoMotivo(idMotivo) {
+
+                var motivo = null;
+
+                $.each(listMotivos, function (i, item) {
+                    if (item.id === idMotivo) {
+                        motivo = item;
+                        return;
+                    }
+                });
+
+                return motivo;
+            }
+
+            function validaLocais(model) {
+
+                if (model.localOrigem === null) {
+                    MostraAlerta("Local de Origem precisa ser informado!", "Atenção", TipoAlerta.Warning, $(this), false, false, function () {
+                        $LocalOrigem[0].selectize.focus();
+                    });
+
+                    return false;
+                }
+
+                if (model.localDestino === null) {
+                    MostraAlerta("Local de Destino precisa ser informado!", "Atenção", TipoAlerta.Warning, $(this), false, false, function () {
+                        $LocalOrigem[0].selectize.focus();
+                    });
+
+                    return false;
+                }
+
+                return true;
+            }
+
+            function salvarDados() {
+
+                var jsonLote = $('#form').GetJsonData();
+
+
+                var modelLote = Object.assign(jsonLote, {
+                    localOrigem: currentLocalOrigem,
+                    localDestino: currentLocalDestino,
+                    motivo: obterObjetoMotivo(jsonLote.motivo),
+                    loteEntrada: currentLote
+                });
+
+                if (!validaLocais(modelLote)) return
+
+                var fnSalvar = function () {
+
+                    delete modelLote.loteEntrada.planejamento;
+
+                    $.postUrlAjax(modelLote, 'nova-movimentacao-entre-local', true, function (res) {
+                        MostraAlerta("Movimentação Cadastrada com sucesso!", "Operação realizada", TipoAlerta.Sucesso, $(this), false, false, function () {
+                            $.load();
+                            window.location.href = raizAplicacao + "movimentacoes-entre-locais";
+                        });
+                    });
+                }
+
+                if (!validarCapacidadeLocal(modelLote)) {
+                    MostraAlertaConfirma(`Total de animais (${modelLote.loteEntrada.quantidadeAnimais}) maior que a capacidade do local destino(${modelLote.localDestino.capacidade}). Deseja prosseguir?`, "Atenção", TipoAlerta.Warning, $(this),
+                        function () {
+                            fnSalvar();
+                        });
+
+                    return;
+                }
+
+                fnSalvar();
+            }
+
+
+            function validarCapacidadeLocal(modelLote) {
+                var capacidade = modelLote.localDestino.capacidade || 0,
+                    qtdAnimais = modelLote.loteEntrada.quantidadeAnimais;
+
+                if (qtdAnimais > capacidade) {
+                    return false;
+                }
+
+                return true;
+            }
+
+            function callbackMotivoCadastrado(data) {
+                listMotivos.push(data);
+                $('#Motivo').append(`<option value='${data.id}'>${data.nome}</option>`);
+                $('#Motivo').val(data.id);
+            }
+
+        });
+    </script>
+    @{await Html.RenderPartialAsync("_CadastroMotivoMovimentacaoModal");}
+}

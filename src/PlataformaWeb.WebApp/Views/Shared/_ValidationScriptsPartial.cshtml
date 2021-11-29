@@ -1,0 +1,11 @@
+﻿<script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+<script src="~/lib/jquery.mask/jquery.mask.min.js"></script>
+<script src="~/lib/jquery-maskmoney/jquery.maskMoney.min.js"></script>
+<environment names="Development">
+    <script src="~/js/validators-message.js" asp-append-version="true"></script>
+    <script src="~/js/validators.js" asp-append-version="true"></script>
+</environment>
+<environment names="Staging,Production">
+    <script src="~/js/validators-message.min.js" asp-append-version="true"></script>
+    <script src="~/js/validators.min.js" asp-append-version="true"></script>
+</environment>

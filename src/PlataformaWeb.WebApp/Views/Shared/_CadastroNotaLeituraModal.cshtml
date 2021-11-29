@@ -1,0 +1,105 @@
+﻿@using PlataformaWeb.WebApp.Extensions
+
+<div class="modal fade" id="novaNovaLeituraModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Nova Nota Leitura de Cocho</h5>
+                <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="formnovaNovaLeituraModal" enctype="multipart/form-data" novalidate>
+                    <div class="row align-items-center justify-content-center">
+                        <div class="col-lg-12">
+                            <fieldset class="form h-100">
+                                <legend class="FundoDestaque">Dados</legend>
+                                <div class="form-row">
+                                    <div class="form-group col-lg-6">
+                                        <label for="NomeNotaLeituraModal" class="control-label">Nome</label>
+                                        <input id="NomeNotaLeituraModal" name="nome" class="form-control" required />
+                                    </div>
+                                    <div class="form-group col-lg-6">
+                                        <label for="AjusteNotaLeituraModal" class="control-label">Ajuste %</label>
+                                        <input id="AjusteNotaLeituraModal" name="ajustePorcentagem" class="form-control decimal" required />
+                                    </div>
+                                </div>
+                            </fieldset>
+                        </div>
+                    </div>
+                    <div class="text-center mt-3">
+                        <button id="btn_nova_nota_leitura" type="button" class="btn btn-success"><i class="fa fa-save"></i>&nbsp;Salvar</button>
+                        <button class="btn btn-info" type="button" data-dismiss="modal"><i class="fa fa-times"></i>&nbsp;Fechar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+
+    var listaNotasModal = [];
+
+    $(document).ready(function () {
+
+        $('.decimal').maskMoney({ thousands: '.', decimal: ',', allowZero: true, suffix: '', precision: 2, allowNegative: true });
+
+        $('#novaNovaLeituraModal').on("show.bs.modal", function () {
+            $('#formnovaNovaLeituraModal').ResetForm();
+        });
+
+        $('#novaNovaLeituraModal').on("shown.bs.modal", function () {
+            $('#formnovaNovaLeituraModal').find("input, select, textarea").eq(0).focus();
+        });
+
+    });
+
+    function initModalNovaNotaLeitura(callback, list) {
+
+        listaNotasModal = list;
+
+        $('#novaNovaLeituraModal').modal("show");
+
+        $(document).off('click', '#btn_nova_nota_leitura');
+
+        $(document).on('click', '#btn_nova_nota_leitura', function (e) {
+            var isValid = $('#formnovaNovaLeituraModal').ValidForm();
+
+            if (isValid) {
+                adicionarNotaModal(callback);
+            }
+        });
+
+    }
+
+    function adicionarNotaModal(callback) {
+        var data = $('#formnovaNovaLeituraModal').GetJsonData();
+        debugger
+        if (!validaAjustePercentual(data)) return;
+
+        $.postUrlAjax(data, 'nova-nota-leitura-cocho', true, function (res) {
+            $('#novaNovaLeituraModal').modal("hide");
+            if (callback)
+                callback(res);
+        });
+    }
+
+    function validaAjustePercentual(data) {
+        var existePercentual = false;
+        $.each(listaNotasModal, function (i, item) {
+            if (data.ajustePorcentagem === item.ajustePorcentagem) {
+                existePercentual = true;
+                return;
+            }
+        });
+
+        if (existePercentual) {
+            MostraAlerta("Já existe esse % de Ajuste cadastrado.", "Atenção", TipoAlerta.Warning, $('#AjusteNotaLeituraModal'), true, true);
+        }
+
+        return !existePercentual;
+    }
+
+</script>

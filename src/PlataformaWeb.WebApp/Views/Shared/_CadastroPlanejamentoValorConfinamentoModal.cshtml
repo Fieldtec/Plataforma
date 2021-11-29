@@ -1,0 +1,213 @@
+﻿@using PlataformaWeb.WebApp.Extensions
+
+<div class="modal fade" id="novoValorConfinamentoModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Novo Valor Confinamento</h5>
+                <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="formNovoConfinamento" enctype="multipart/form-data" novalidate>
+                    <div class="row align-items-center justify-content-center">
+                        <input class="numerico" id="IdConfinamento" name="id" type="hidden" />
+                        <div class="col-lg-12">
+                            <fieldset class="form h-100">
+                                <legend class="FundoDestaque">Dados do Confinamento</legend>
+                                <div class="form-row">
+                                    <div class="form-group col-lg-12">
+                                        <label for="IdRacao" class="control-label">Ração&nbsp;<i data-toggle="tooltip" data-placement="top" title="Digite parte do nome para fazer a busca" class="far fa-question-circle text-info helper"></i></label>
+                                        <select id="IdRacao" name="idRacao" class="form-control LetraFormulario" required></select>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group col-md-3">
+                                        <label for="DiaInicio" class="control-label">Dia Início</label>
+                                        <input id="DiaInicio" name="diaInicio" type="text" class="form-control inteiro" required disabled />
+                                    </div>
+                                    <div class="form-group col-md-3">
+                                        <label for="DiaFim" class=" control-label">Dia Fim</label>
+                                        <input id="DiaFim" name="diaFim" type="text" class="form-control inteiro" required />
+                                    </div>
+                                    <div class="form-group col-md-3">
+                                        <label for="ImspvEsperadoConfinamento" class="control-label">IMSPV Esperado</label>
+                                        <input id="ImspvEsperadoConfinamento" name="imspvEsperado" type="text" class="form-control decimal3" required />
+                                    </div>
+                                    <div class="form-group col-md-3">
+                                        <label for="GmdEsperadoConfinamento" class="control-label">GMD Esperado</label>
+                                        <input id="GmdEsperadoConfinamento" name="gmdEsperado" type="text" class="form-control decimal3" required />
+                                    </div>
+                                </div>
+                            </fieldset>
+                        </div>
+                    </div>
+                    <div class="text-center mt-3">
+                        <button id="btn_cadastrar_confinamento" type="button" class="btn btn-success"><i class="fa fa-save"></i>&nbsp;Salvar</button>
+                        <button class="btn btn-info" type="button" data-dismiss="modal"><i class="fa fa-times"></i>&nbsp;Fechar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/lib/selectize.js/js/standalone/selectize.min.js"></script>
+<link href="~/lib/selectize.js/css/selectize.bootstrap3.min.css" rel="stylesheet" />
+<script type="text/javascript">
+
+    var currentRacao = null;
+    var currentDataConfinamento = null;
+    var $IdRacao = null;
+
+    $(document).ready(function () {
+
+        var racoes = @Html.Raw(Json.Serialize(ViewBag.racoes));
+
+        $('[data-toggle="tooltip"]').tooltip({
+            container: 'body'
+        });
+
+        $('.inteiro').mask("999999");
+
+        $('.decimal3').maskMoney({ thousands: '.', decimal: ',', allowZero: true, suffix: '', precision: 3 });
+
+        $('#novoValorConfinamentoModal').on("show.bs.modal", function () {
+            if (currentDataConfinamento === null) {
+                $('#IdConfinamento').val(0);
+                currentRacao = null;
+                $IdRacao[0].selectize.setValue(null);
+                $('#DiaFim').prop("disabled", false);
+            } else {
+                $('#IdRacao').val(currentDataConfinamento.racao.id);
+                //$IdRacao[0].selectize.addOption(currentDataConfinamento.racao);
+                $IdRacao[0].selectize.setValue(currentDataConfinamento.racao.id);
+
+                $('#DiaInicio').val(currentDataConfinamento.diaInicio);
+                $('#DiaFim').val(currentDataConfinamento.diaFim);
+                $('#ImspvEsperadoConfinamento').val(formataMoeda(currentDataConfinamento.imspvEsperado, 3, ',', '.'));
+                $('#GmdEsperadoConfinamento').val(formataMoeda(currentDataConfinamento.gmdEsperado, 3, ',', '.'));
+                $('#DiaFim').prop("disabled", true);
+
+                $('#IdConfinamento').val(currentDataConfinamento.id);
+            }
+        });
+
+        $('#novoValorConfinamentoModal').on("shown.bs.modal", function () {
+            $('#IdRacao-selectized').focus();
+        });
+
+        $IdRacao = $('#IdRacao').selectize({
+            valueField: 'id',
+            labelField: 'nome',
+            searchField: 'nome',
+            options: racoes,
+            create: false,
+            onChange: function (value) {
+                currentRacao = this.options[value] || null;
+                if (currentRacao !== null) {
+                    $('#GmdEsperadoConfinamento').val(formataMoeda(currentRacao.gmd, 3, ",", "."));
+                }
+            },
+            render: {
+                option: function (item, escape) {
+                    return `<div class="selectize-div">
+                                              <span class="selectize-titulo">${item.nome}</span>      
+                                                <span class="selectize-subtitulo">Gmd: ${formataMoeda(item.gmd, 3, ",", ".")} - Matéria Seca: ${formataMoeda(item.materiaSeca, 3, ",", ".")}</span>
+                                            </div>`;
+                }
+            },           
+            load: function (query, callback) {
+                if (query.length < 1) {
+                    callback(racoes);
+                } else {
+                    var list = racoes.filter(x => x.nome.toUpperCase().includes(query.toUpperCase()));
+                    callback(list);
+                }
+            }
+        });
+
+    });
+
+    function definirProximoDiaInicial() {
+        
+        var listConfinamentos = $('#tabelaConfinamentos').grid('getData'),
+            proximoDia = 1;
+
+        if (listConfinamentos.length) {
+            proximoDia = listConfinamentos[listConfinamentos.length - 1].diaFim + 1;
+        } 
+
+        $('#DiaInicio').val(proximoDia);
+    }
+
+    function initModalConfinamento(callback, data) {
+
+        $('#formNovoConfinamento').ResetForm();
+        limparCamposRacao();
+
+        //caso for edição variável recebe dados
+        currentDataConfinamento = data || null;
+               
+        if (currentDataConfinamento === null)
+            definirProximoDiaInicial();
+
+        $('#novoValorConfinamentoModal').modal("show");
+
+        $(document).off('click', '#btn_cadastrar_confinamento');
+
+        $(document).on('click', '#btn_cadastrar_confinamento', function (e) {
+            var isValid = $('#formNovoConfinamento').ValidForm();
+
+            if (isValid) {
+                adicionarNovoConfinamento(callback);
+            }
+        });
+
+    }
+
+    function limparCamposRacao() {
+        currentRacao = null;
+        $IdRacao[0].selectize.setValue(null);
+        //$IdRacao[0].selectize.clearOptions();
+        //$IdRacao[0].selectize.refreshOptions();
+    }
+
+    function adicionarNovoConfinamento(callback) {
+
+        var data = $('#formNovoConfinamento').GetJsonData();
+
+        if (data.diaInicio >= data.diaFim) {
+            MostraAlerta("Dia Fim precisa ser maior do que o Dia Início", "Atenção", TipoAlerta.Warning, $("#DiaFim"), true, true);
+            return;
+        }
+
+        data["racao"] = currentRacao;
+
+        if (data.racao === null) {
+            MostraAlerta("Ração precisa ser preenchido", "Atenção", TipoAlerta.Warning, $(this), false, false);
+            return;
+        }
+
+        //callback a ser chamado caso as informações inseridas forem válidas
+        var callbackAposSalvar = function () {
+
+            if (currentDataConfinamento !== null) {
+                $('#novoValorConfinamentoModal').modal("hide");
+            } else {
+                $('#formNovoConfinamento').ResetForm();
+                limparCamposRacao();
+                $('#IdRacao-selectized').focus();
+                definirProximoDiaInicial();
+            }
+        }
+
+        if (callback)
+            callback(data, callbackAposSalvar);
+
+    }
+
+
+
+</script>

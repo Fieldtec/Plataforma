@@ -1,0 +1,97 @@
+﻿@model IEnumerable<PlataformaWeb.Business.DTO.ClienteDTO>
+@using PlataformaWeb.WebApp.Extensions
+@inject PlataformaWeb.Business.Interfaces.IUser AppUser
+@{
+    ViewData["Title"] = "Clientes Cadastrados";
+}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-content-center align-items-center">
+        @if (AppUser.EhTecnico())
+        {
+            <a id="btn_novo_cliente" data-licencas="@ViewBag.LicencasDisponiveis" class="btn btn-sm btn-primary" href="@Url.Content("~/novo-cliente")"><i class="fa fa-plus"></i>&nbsp;Novo Cliente</a>
+            <h6 class="m-0 font-weight-bold text-primary">Licenças Restantes: @ViewBag.LicencasDisponiveis</h6>
+        }
+    </div>
+    <div class="card-body">
+        <vc:summary />
+        <div class="table-responsive table-fixed">
+            <table class="table table-hover table-striped">
+                <thead>
+                    <tr role="row">
+                        <th>Nome Propriedade</th>
+                        <th>Proprietário</th>
+                        <th>Município</th>
+                        <th class="text-center">UF</th>
+                        @if (AppUser.EhAdmin())
+                        {
+                            <th>Técnico</th>
+                        }
+                        <th style="width: 150px;" class="text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Count() > 0)
+                    {
+                        @foreach (var entidade in Model)
+                        {
+                            <tr role="row">
+                                <td>@entidade.Propriedade</td>
+                                <td>@entidade.Nome</td>
+                                <td>@entidade.Municipio</td>
+                                <td class="text-center">@entidade.Uf</td>
+                                @if (AppUser.EhAdmin())
+                                {
+                                    <td>@entidade.Tecnico</td>
+                                }
+                                <td class="text-center">
+                                    @if (AppUser.EhTecnico())
+                                    {
+                                        <a asp-action="Edit" asp-route-id="@entidade.Id" title="Editar" class="btn btn-sm btn-warning">
+                                            <span class="fas fa-edit"></span>
+                                        </a>
+                                        <a asp-action="Details" asp-route-id="@entidade.Id" title="Detalhe" class="btn btn-sm btn-primary">
+                                            <span class="fas fa-search"></span>
+                                        </a>
+                                        <a asp-action="Delete" asp-route-id="@entidade.Id" title="Remover" class="btn btn-sm btn-danger">
+                                            <span class="fas fa-trash-alt"></span>
+                                        </a>
+                                    }
+                                    else if (AppUser.EhAdmin())
+                                    {
+                                        <a asp-action="Details" asp-route-id="@entidade.Id" title="Detalhe" class="btn btn-sm btn-primary">
+                                            <span class="fas fa-search"></span>
+                                        </a>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr role="row">
+                            <td class="text-center" colspan="7">Nenhum Cliente Cadastrado</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <label class="font-weight-bold mt-2">Total de Registros: @Model.Count()</label>
+    </div>
+</div>
+
+@section Scripts {
+   <script>
+       $(document).ready(function () {
+           $(document).on('click', '#btn_novo_cliente', function (e) {
+               var qtdLicencas = $(this).data("licencas");
+               if (qtdLicencas === 0) {
+                   MostraAlerta("Técnico não possui Licenças Disponíveis.", "Atenção", TipoAlerta.Warning, $(this), false, false);
+                   e.preventDefault();
+               }
+           });
+       });
+   </script>
+
+
+}

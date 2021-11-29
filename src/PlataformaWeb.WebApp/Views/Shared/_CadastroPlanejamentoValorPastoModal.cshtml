@@ -1,0 +1,246 @@
+﻿@using PlataformaWeb.WebApp.Extensions
+
+<div class="modal fade" id="novoValorPastoModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Novo Valor Pasto</h5>
+                <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="formNovoPasto" enctype="multipart/form-data" novalidate>
+                    <div class="row align-items-center justify-content-center">
+                        <input class="numerico" id="IdPasto" name="id" type="hidden" />
+                        <div class="col-lg-12">
+                            <fieldset class="form h-100">
+                                <legend class="FundoDestaque">Dados do Pasto</legend>
+                                <div class="form-row">
+                                    <div class="form-group col-lg-6">                                        
+                                        <label for="IdCategoria" class="control-label">Categoria&nbsp;<i data-toggle="tooltip" data-placement="top" title="Digite parte do nome para fazer a busca" class="far fa-question-circle text-info helper"></i></label>
+                                        <select id="IdCategoria" name="idCategoria" class="form-control LetraFormulario" required></select>
+                                    </div>
+                                    <div class="form-group col-lg-6">
+                                        <label for="IdSuplemento" class="control-label">Suplemento&nbsp;<i data-toggle="tooltip" data-placement="top" title="Digite parte do nome para fazer a busca" class="far fa-question-circle text-info helper"></i></label>
+                                        <select id="IdSuplemento" name="idSuplemento" class="form-control LetraFormulario" required></select>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group col-md-3">
+                                        <label for="IdFase" class="control-label">Fase do Ano&nbsp;<i data-toggle="tooltip" data-placement="top" title="Digite parte do nome para fazer a busca" class="far fa-question-circle text-info helper"></i></label>
+                                        <select id="IdFase" name="idFase" class="form-control LetraFormulario" required></select>
+                                    </div>                                    
+                                    <div class="form-group col-md-3">
+                                        <label for="ImspvEsperadoPasto" class="control-label">IMSPV Esperado</label>
+                                        <input id="ImspvEsperadoPasto" name="imspvEsperado" type="text" class="form-control decimal3" required />
+                                    </div>
+                                    <div class="form-group col-md-3">
+                                        <label for="GmdEsperadoPasto" class="control-label">GMD Esperado</label>
+                                        <input id="GmdEsperadoPasto" name="gmdEsperado" type="text" class="form-control decimal3" required />
+                                    </div>
+                                </div>
+                            </fieldset>
+                        </div>
+                    </div>
+                    <div class="text-center mt-3">
+                        <button id="btn_cadastrar_pasto" type="button" class="btn btn-success"><i class="fa fa-save"></i>&nbsp;Salvar</button>
+                        <button class="btn btn-info" type="button" data-dismiss="modal"><i class="fa fa-times"></i>&nbsp;Fechar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/lib/selectize.js/js/standalone/selectize.min.js"></script>
+<link href="~/lib/selectize.js/css/selectize.bootstrap3.min.css" rel="stylesheet" />
+<script type="text/javascript">
+
+    var currentCategoria, currentSuplemento, currenteFase = null;
+    var currentDataPasto = null;
+    var $IdCategoria, $IdSuplemento, $IdFase = null;
+
+    $(document).ready(function () {
+
+        var categorias = @Html.Raw(Json.Serialize(ViewBag.categorias));
+        var suplementos = @Html.Raw(Json.Serialize(ViewBag.suplementos));
+        var fases = @Html.Raw(Json.Serialize(ViewBag.faseAno));
+
+        $('[data-toggle="tooltip"]').tooltip({
+            container: 'body'
+        });
+
+        $('.decimal3').maskMoney({ thousands: '.', decimal: ',', allowZero: true, suffix: '', precision: 3 });
+
+        $('#novoValorPastoModal').on("show.bs.modal", function () {
+            if (currentDataPasto === null) {
+                $('#IdPasto').val(0);
+                currentCategoria, currentSuplemento, currenteFase = null;
+                $IdCategoria[0].selectize.setValue(null);
+                $IdSuplemento[0].selectize.setValue(null);
+                $IdFase[0].selectize.setValue(null);
+            } else {
+                $('#IdCategoria').val(currentDataPasto.categoria.id);
+                //$IdCategoria[0].selectize.addOption(currentDataPasto.categoria);
+                $IdCategoria[0].selectize.setValue(currentDataPasto.categoria.id);
+
+                $('#IdSuplemento').val(currentDataPasto.suplementoMineral.id);
+                //$IdSuplemento[0].selectize.addOption(currentDataPasto.suplementoMineral);
+                $IdSuplemento[0].selectize.setValue(currentDataPasto.suplementoMineral.id);
+
+                $('#IdFase').val(currentDataPasto.faseDoAno.id);
+                //$IdFase[0].selectize.addOption(currentDataPasto.faseDoAno);
+                $IdFase[0].selectize.setValue(currentDataPasto.faseDoAno.id);
+
+                $('#ImspvEsperadoPasto').val(formataMoeda(currentDataPasto.imspvEsperado, 3, ',', '.'));
+                $('#GmdEsperadoPasto').val(formataMoeda(currentDataPasto.gmdEsperado, 3, ',', '.'));
+
+                $('#IdPasto').val(currentDataPasto.id);
+            }
+        });
+
+        $('#novoValorPastoModal').on("shown.bs.modal", function () {
+            $('#IdCategoria-selectized').focus();
+        });
+
+        $IdCategoria = criarSelectizeObjeto('#IdCategoria', 'buscar-categoria', {
+            options: categorias,
+            onChange: function (value) {
+                currentCategoria = this.options[value] || null;
+            },
+            render: {
+                option: function (item, escape) {
+                    return `<div class="selectize-div">
+                                <span class="selectize-titulo">${item.nome}</span>
+                                <span class="selectize-subtitulo">Idade Mínima: ${item.idadeMinima} - Idade Máxima: ${item.idadeMaxima}</span>
+                            </div>`;
+                }
+            }
+        }, categorias);
+
+        $IdSuplemento = criarSelectizeObjeto('#IdSuplemento', 'buscar-suplemento', {
+            options: suplementos,
+            onChange: function (value) {
+                currentSuplemento = this.options[value] || null;
+            },
+            render: {
+                option: function (item, escape) {
+                    var nomeFornecedor = item.nomeFornecedorInsumo || " - ";
+                    return `<div class="selectize-div">
+                                <span class="selectize-titulo">${item.nome}</span>
+                                <span class="selectize-subtitulo">Fornecedor: ${nomeFornecedor}</span>
+                            </div>`;
+                }
+            }
+        }, suplementos);
+
+        $IdFase = criarSelectizeObjeto('#IdFase', 'buscar-fase', {
+            options: fases,
+            onChange: function (value) {
+                currenteFase = this.options[value] || null;
+            },
+            render: {
+                option: function (item, escape) {
+                    return `<div class="selectize-div">
+                                <span class="selectize-titulo">${item.nome}</span>
+                            </div>`;
+                }
+            }
+        }, fases);
+
+        function criarSelectizeObjeto(id, urlBusca, options, list) {
+            return $(id).selectize($.extend(true, {
+                valueField: 'id',
+                labelField: 'nome',
+                searchField: 'nome',
+                create: false,
+                load: function (query, callback) {
+                    if (query.length < 1) {
+                        callback(list);
+                    } else {
+                        var listFilter = list.filter(x => x.nome.toUpperCase().includes(query.toUpperCase()));
+                        callback(listFilter);
+                    }
+                }
+            }, options));
+        }
+
+    });
+
+    function initModalPasto(callback, data) {
+
+        $('#formNovoPasto').ResetForm();
+        limparCamposSelectize();
+
+        //caso for edição variável recebe dados
+        currentDataPasto = data || null;
+
+        $('#novoValorPastoModal').modal("show");
+
+        $(document).off('click', '#btn_cadastrar_pasto');
+
+        $(document).on('click', '#btn_cadastrar_pasto', function (e) {
+            var isValid = $('#formNovoPasto').ValidForm();
+
+            if (isValid) {
+                adicionarNovoPasto(callback);
+            }
+        });
+
+    }
+
+    function limparCamposSelectize() {
+        currentCategoria = null;
+        $IdCategoria[0].selectize.setValue(null);
+        //$IdCategoria[0].selectize.clearOptions();
+        //$IdCategoria[0].selectize.refreshOptions();
+        currenteFase = null;
+        $IdFase[0].selectize.setValue(null);
+        //$IdFase[0].selectize.clearOptions();
+        //$IdFase[0].selectize.refreshOptions();
+        currentSuplemento = null;
+        $IdSuplemento[0].selectize.setValue(null);
+        //$IdSuplemento[0].selectize.clearOptions();
+        //$IdSuplemento[0].selectize.refreshOptions();
+    }
+
+    function adicionarNovoPasto(callback) {
+
+        var data = $('#formNovoPasto').GetJsonData();
+
+        data["categoria"] = currentCategoria;
+        if (data.categoria === null) {
+            MostraAlerta("Categoria precisa ser preenchido", "Atenção", TipoAlerta.Warning, $('#IdCategoria-selectized'), true, true);
+            return;
+        }
+
+        data["suplementoMineral"] = currentSuplemento;
+        if (data.suplementoMineral === null) {
+            MostraAlerta("Suplemento precisa ser preenchido", "Atenção", TipoAlerta.Warning, $('#IdSuplemento-selectized'), true, true);
+            return;
+        }
+
+        data["faseDoAno"] = currenteFase;
+        if (data.faseDoAno === null) {
+            MostraAlerta("Categoria precisa ser preenchido", "Atenção", TipoAlerta.Warning, $('#IdFase-selectized'), true, true);
+            return;
+        }
+
+        //callback a ser chamado caso as informações inseridas forem válidas
+        var callbackAposSalvar = function () {
+            if (currentDataPasto !== null) {
+                $('#novoValorPastoModal').modal("hide");
+            } else {
+                $('#formNovoPasto').ResetForm();
+                limparCamposSelectize();
+                $('#IdCategoria-selectized').focus();
+            }
+        }
+
+        if (callback)
+            callback(data, callbackAposSalvar);
+
+    }
+
+</script>

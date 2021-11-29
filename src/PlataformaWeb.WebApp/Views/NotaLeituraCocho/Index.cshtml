@@ -1,0 +1,189 @@
+﻿@model IEnumerable<NotaLeituraCochoViewModel>
+@using PlataformaWeb.WebApp.Extensions
+@inject PlataformaWeb.Business.Interfaces.IUser AppUser
+@{
+    ViewData["Title"] = "Notas Leitura de Cocho";
+}
+
+<div class="row align-items-center justify-content-center">
+    <div class="col-xl-6 col-lg-10">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex justify-content-between align-content-center align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">Configuração Notas Leitura de Cocho</h6>
+                <button type="button" id="btnNovaNota" class="btn btn-sm btn-primary text-right"><i class="fa fa-plus"></i>&nbsp;Nova Nota</button>
+            </div>
+            <div class="card-body">
+                <form id="form">
+                    <div class="table-responsive table-fixed">
+                        <table id="tableNotasLeitura" class="table table-hover table-striped">
+                            <thead>
+                                <tr role="row">
+                                    <th>Nome</th>
+                                    <th style="width: 100px" class="text-right">Ajuste %</th>
+                                    @if (!AppUser.EhAdmin())
+                                    {
+                                        <th class="text-center">Ações</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.Count() > 0)
+                                {
+                                    @foreach (var entidade in Model)
+                                    {
+                                <tr role="row" data-id="@entidade.Id" data-nome="@entidade.Nome">
+                                    <td>@entidade.Nome</td>
+                                    @if (AppUser.EhAdmin())
+                                    {
+                                        <td class="text-right">@this.FormataDecimal(entidade.AjustePorcentagem, 2)</td>
+                                    }
+                                    else if (!AppUser.EhAdmin())
+                                    {
+                                        <td style="width: 100px">
+                                            <input style="width: 100px" class="form-control LetraFormulario decimalNegative" value="@this.FormataDecimal(entidade.AjustePorcentagem, 2)" />
+                                        </td>
+                                        <td class="text-center" style="width: 100px">
+                                            <button type="button" class="btn btn-danger btn-sm btn_remover_nota no_focus"><i class="fa fa-trash"></i></button>
+                                        </td>
+                                    }
+                                </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr role="row">
+                                        <td class="text-center" colspan="2">Nenhuma Nota Cadastrada</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    @if (!AppUser.EhAdmin() && Model.Count() > 0)
+                    {
+                        <div class="text-center mt-3">
+                            <button id="btn_salvar" type="button" class="btn btn-success"><i class="fa fa-save"></i>&nbsp;Salvar</button>
+                        </div>
+                    }
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+<script type="text/javascript">
+        $(document).ready(function () {
+
+            var models = @Html.Raw(Json.Serialize(Model));
+
+            $(document).on('click', '#btn_salvar', function () {
+                salvarConfiguracao();
+            });
+
+            $(document).on('click', '#btnNovaNota', function () {
+                initModalNovaNotaLeitura(callbackNotaCadastada, models);
+            });
+
+            $(document).on('click', '.btn_remover_nota', function () {
+
+                var $tr = $(this).parents("tr");
+
+                MostraAlertaConfirma(`Confirma a exclusão da Nota ${$tr.data('nome')} ?`, 'Confirma?', TipoAlerta.Warning, $(this),
+                    function () {
+                        $.postUrlAjax($tr.data('id'), 'remover-nota-leitura-cocho', true, function (res) {                            
+                            $tr.remove();
+                            MostraAlerta("Nota removida com sucesso", "Sucesso!", TipoAlerta.Sucesso, $(this), false, false);
+                        });
+                    });
+            });
+
+            function callbackNotaCadastada(nota) {
+                //var html = [];
+                //html.push(`<tr role="row" data-id="${nota.id}" data-nome="${nota.nome}">
+                //            <td>${nota.nome}</td>                                           
+                //            <td style="width: 100px">
+                //                <input style="width: 100px" class="form-control LetraFormulario decimalNegative" value="${formataMoeda(nota.ajustePorcentagem, 2, ",", ".")}" />
+                //            </td>                                           
+                //      </tr>`);
+                //$('#tableNotasLeitura tbody').append(html.join(""));
+                window.location.reload();
+            }
+
+            function salvarConfiguracao() {
+                var lista = obterLista();
+
+                if (!validarInformacoes(lista)) return;
+
+                MostraAlertaConfirma("Confirma a alteração dos Ajustes?", "Confirma?", TipoAlerta.Warning, $(this), function () {
+                    $.postUrlAjax(lista, 'editar-notas-leitura-cocho', true, function (res) {
+                        models = res;
+                        MostraAlerta("Alterações realizadas com sucesso", "Sucesso!", TipoAlerta.Sucesso, $(this), false, false);
+                    });
+                });
+
+            }
+
+            function obterLista() {
+
+                var listaConfig = [],
+                    $linhas = $('#tableNotasLeitura').find('tbody tr');
+
+                $.each($linhas, function (i, item) {
+                    var $linha = $(item);
+
+                    listaConfig.push({
+                        id: $linha.data("id"),
+                        nome: $linha.data("nome"),
+                        ajustePorcentagem: $linha.find('input').getValue()
+                    });
+                });
+
+                return listaConfig;
+            }
+
+            function validarInformacoes(lista) {
+
+                if (!lista.length) {
+                    MostraAlerta("Nenhuma informação foi configurada", "Atenção", TipoAlerta.Warning, $(this), false, false);
+                    return false;
+                }
+
+                var validouPorcentagem = true;
+                $.each(lista, function (i, item) {
+                    if (item.ajustePorcentagem === null) {
+                        MostraAlerta(`Ajuste % da Nota ${item.nome} precisa ter informação`, "Atenção", TipoAlerta.Warning, $(this), false, false, function () {
+                            $('#table tbody tr input').eq(i).focus();
+                        });
+
+                        validouPorcentagem = false;
+                        return;
+                    }
+                });
+
+                if (!validouPorcentagem) return false;
+
+                var alterouUmaNota = false;
+                $.each(models, function (i, model) {
+                    $.each(lista, function (i, item) {
+                        if (model.id === item.id) {
+                            if (model.ajustePorcentagem !== item.ajustePorcentagem) {
+                                alterouUmaNota = true;
+                            }
+                            return;
+                        }
+                    });
+                });
+
+                if (!alterouUmaNota) {
+                    MostraAlerta(`Nenhum Ajuste foi realizado`, "Atenção", TipoAlerta.Warning, $(this), false, false);
+                    return false;
+                }
+
+                return true;
+            }
+        });
+</script>
+    @{await Html.RenderPartialAsync("_CadastroNotaLeituraModal");}
+    
+}

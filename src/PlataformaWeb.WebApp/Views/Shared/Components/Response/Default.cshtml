@@ -1,0 +1,13 @@
+﻿@if (ViewBag.result != null)
+{
+    <script type="text/javascript">
+        $.load.hide();
+        var result = @Html.Raw(Json.Serialize(ViewBag.result));
+        MostraAlerta(result.mensagem, result.titulo || "Operação realizada!", result.tipoAlerta || TipoAlerta.Sucesso, $(this), false, false, function () {
+            if (result.callback) {
+                $.load();
+                window.location.href = result.callback;
+            }
+        });
+    </script>
+}
