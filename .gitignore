@@ -1,0 +1,6 @@
+/.vs
+/*.suo
+/src/*/bin
+/src/*/obj
+/src/*/*.csproj.user
+/src/*/Temp
